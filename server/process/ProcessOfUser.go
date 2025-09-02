@@ -13,10 +13,9 @@ import (
 
 type UserProcess0 struct {
 	//分析应有的字段
-	Conn net.Conn
-
-	//增加一个字段，表示该conn是哪个用户
-	UserID int
+	Conn     net.Conn
+	UserID   int
+	UserName string
 }
 
 // NotifyOtherOnlineUser 写通知所有在线用户的方法。userID要通知其它在线用户自己上线了
@@ -159,12 +158,14 @@ func (uspc *UserProcess0) ServerProcessLogin(mes *message.Message) (err error) {
 		//因为用户登录成功，所以要把该登录成功的用户放入到UserMgr中，表示该用户上线了
 		//将登录成功的用户的userID赋值给uspc
 		uspc.UserID = loginMes.UserID
+		uspc.UserName = user.UserName
 		userMgr.AddOnlineUser(uspc)
 		uspc.NotifyOtherOnlineUser(uspc.UserID) //登录成功，就告诉其它用户自己上线了
 		//将当前在线用户的ID放入到loginResMes.UserIDs
 		//遍历userMgr.onlineUsers
-		for id := range userMgr.onlineUsers {
+		for id, up := range userMgr.onlineUsers {
 			loginResMes.UserIDs = append(loginResMes.UserIDs, id)
+			loginResMes.UserNames = append(loginResMes.UserNames, up.UserName)
 		}
 		fmt.Println(user, "登录成功")
 	}

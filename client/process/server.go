@@ -13,7 +13,7 @@ import (
 
 // ShowMenu 显示登录成功后的界面
 func ShowMenu() {
-	fmt.Printf("\t\t用户 %s (ID:%d) 登录成功", CurUser.UserName, CurUser.UserID)
+	fmt.Printf("\t\t用户 %s (ID:%d) 登录成功", CurUser.UserName, CurUser.UserID) //优化：只在登录成功后出现
 	fmt.Println()
 	fmt.Println()
 	fmt.Println("\t\t1.显示在线用户列表")
@@ -58,7 +58,7 @@ func ShowMenu() {
 
 // serverProcessMes 与服务端保持通讯
 func serverProcessMes(conn net.Conn) {
-	//创建一个transfer实例，不停读取服务器发送的消息
+	//创建一个transfer实例，读取服务器发送的消息
 	tf := &utils.Transfer{
 		Conn: conn,
 	}

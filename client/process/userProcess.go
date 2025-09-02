@@ -101,11 +101,11 @@ func (uspc *UserProcess) Login(userID int, userPassword string) (err error) {
 		CurUser.UserName = loginResMes.UserName
 
 		fmt.Println("当前在线用户如下：")
-		for _, v := range loginResMes.UserIDs {
+		for i, v := range loginResMes.UserIDs {
 			if v == loginResMes.UserID {
 				continue //不显示自己在线
 			}
-			fmt.Printf("%s (ID:%d)\t", loginResMes.UserName, loginResMes.UserID)
+			fmt.Printf("%s (ID：%d)\t", loginResMes.UserNames[i], v)
 
 			//完成客户端的onlineUsers的初始化
 			user := &message.User{
