@@ -116,7 +116,7 @@ func (uspc *UserProcess0) ServerProcessRegister(mes *message.Message) (err error
 	return
 }
 
-// ServerProcessLogin 处理登录请求的函数
+// ServerProcessLogin 登录：第二步
 func (uspc *UserProcess0) ServerProcessLogin(mes *message.Message) (err error) {
 	var loginMes message.LoginMes
 	err = json.Unmarshal([]byte(mes.Data), &loginMes)
@@ -184,54 +184,4 @@ func (uspc *UserProcess0) ServerProcessLogin(mes *message.Message) (err error) {
 	}
 	err = tf.WritePkg(data)
 	return
-}
-
-// SendNormalOfflineMes 下线：第二步 针对用户正常退出的情况，服务端通知其它在线用户该用户下线
-func (uspc *UserProcess0) SendNormalOfflineMes(mes *message.Message) {
-	//因为用户正常退出，因此服务端可以收到客户端发送的mes
-	var normalOfflineMes message.OfflineMes
-	err := json.Unmarshal([]byte(mes.Data), &normalOfflineMes)
-	if err != nil {
-		fmt.Println("SendNormalOfflineMes json.Unmarshal err=", err)
-		return
-	}
-
-	//反序列化后得到了下线用户的ID、昵称、下线时间
-	//下一步要对服务端维护的两个map进行crud
-
-	//1.把这个用户从onlineUser中删除，调用userMng的delete函数
-	userMgr.DeleteOnlineUser(normalOfflineMes.UserID)
-
-	//2.改变这个用户的状态
-	userMgr.userStatus[normalOfflineMes.UserID] = message.UserOffline
-
-	//服务端本身已经处理完，接下来服务端要发信息，告诉其它在线用户这个用户下线了
-	mes.Type = message.OfflineResMesType
-	data, err := json.Marshal(mes)
-	if err != nil {
-		fmt.Println("SendNormalOfflineMes json.Marshal err=", err)
-		return
-	}
-
-	//通知所有其它在线用户
-	for id, up := range userMgr.onlineUsers {
-		if id == normalOfflineMes.UserID {
-			continue //过滤掉自己
-		}
-		tf := &utils.Transfer{
-			Conn: up.Conn,
-		}
-		err = tf.WritePkg(data)
-		if err != nil {
-			fmt.Println("SendNormalOfflineMes json.Marshal err=", err)
-		}
-	}
-}
-
-// SendAbnormalOfflineMes 下线：第二步 针对用户非正常退出的情况，服务端向在线用户发送某用户下线的信息
-func (uspc *UserProcess0) SendAbnormalOfflineMes(userID int, userName string) {
-	//由于用户非正常退出，服务器是无法接收到客户端发过来的下线信息的
-	//因此，在上层需要写一个心跳检测，每隔5秒检测用户是否与服务端保持连接
-	//如果用户没有保持连接又没有发送OfflineMes，就在这个if中调用这个函数
-
 }

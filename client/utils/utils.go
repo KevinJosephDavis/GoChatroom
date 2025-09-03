@@ -21,7 +21,6 @@ type Transfer struct {
 // ReadPkg 读取数据
 func (tf *Transfer) ReadPkg() (mes message.Message, err error) {
 	//buf := make([]byte, 8096)
-	fmt.Println("读取客户端发送的数据...")
 	_, err = tf.Conn.Read(tf.Buf[:4]) //虽然buf是在readPkg中临时创建的，但conn.Read()会阻塞等待客户端发送数据
 	//客户端发送数据后，Read()将数据写入buf的前4个字节
 	if err != nil {
@@ -58,7 +57,6 @@ func (tf *Transfer) ReadPkg() (mes message.Message, err error) {
 // WritePkg 发送数据
 func (tf *Transfer) WritePkg(data []byte) (err error) {
 	//先发送一个长度给对方
-	//复用login.go中发送长度的代码
 	// 先获取到data的长度->转成一个表示长度的byte切片
 	pkgLen := uint32(len(data))
 	//var buf [4]byte

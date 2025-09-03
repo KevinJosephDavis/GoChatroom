@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"os"
 	"time"
 
 	"github.com/kevinjosephdavis/chatroom/common/message"
@@ -14,15 +13,15 @@ import (
 
 // ShowMenu 显示登录成功后的界面
 func ShowMenu() {
-	fmt.Printf("\t\t用户 %s (ID:%d) 登录成功", CurUser.UserName, CurUser.UserID) //优化：只在登录成功后出现
+	//fmt.Printf("\t\t用户 %s (ID:%d) 登录成功", CurUser.UserName, CurUser.UserID) //优化：只在登录成功后出现
 	fmt.Println()
 	fmt.Println()
-	fmt.Println("\t\t1.显示在线用户列表")
-	fmt.Println("\t\t2.开启广播")
-	fmt.Println("\t\t3.私聊")
-	fmt.Println("\t\t4.信息列表")
-	fmt.Println("\t\t5.退出系统")
-	fmt.Println("\t\t请选择1-5")
+	fmt.Println("\t1.显示在线用户列表")
+	fmt.Println("\t2.开启广播")
+	fmt.Println("\t3.私聊")
+	fmt.Println("\t4.信息列表")
+	fmt.Println("\t5.退出系统")
+	fmt.Println("\t请选择1-5")
 	var choice int
 	var content string
 
@@ -48,12 +47,13 @@ func ShowMenu() {
 		smsp.SendPrivateMes(content, receiverID)
 	case 4:
 		fmt.Println("查看信息列表") //离线留言使用
+
 	case 5:
 		fmt.Println("您选择退出系统")
 		smsp.SendOfflineMes(CurUser.UserID, CurUser.UserName, time.Now().Unix())
 		time.Sleep(100 * time.Millisecond) //确保消息发送过去
 		fmt.Println("再见！")
-		os.Exit(0)
+		return
 	default:
 		fmt.Println("输入有误，请重新输入")
 	}

@@ -25,8 +25,8 @@ const (
 
 //定义两个退出情况
 const (
-	Abnormal = iota
-	Normal
+	Abnormal = "非正常退出"
+	Normal   = "正常退出"
 )
 
 type Message struct {
@@ -88,14 +88,16 @@ type PrivateResMes struct {
 type OfflineMes struct {
 	UserID   int    `json:"userID"`
 	UserName string `json:"userName"`
-	Reason   int    `json:"reason"`
-	Time     int64  `json:"time"` //下线时间戳
+	Reason   string `json:"reason"`
+	Time     int64  `json:"time"`
 }
 
 // OfflineResMes 下线：服务端传给在线用户的消息
 type OfflineResMes struct {
-	UserID   int    `json:"UserID"`
+	UserID   int    `json:"userID"`
 	UserName string `json:"userName"`
+	Reason   string `json:"reason"`
+	Time     int64  `json:"time"`
 }
 
 // OnlineMes 上线：客户端传给服务端的信息

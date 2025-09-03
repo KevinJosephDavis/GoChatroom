@@ -1,6 +1,9 @@
 package process2
 
-import "fmt"
+import (
+	"fmt"
+	"sync"
+)
 
 //因为UserMgr实例在服务器端有且仅有一个
 //而在很多地方都会使用到，所以我们将其定义为全局变量
@@ -11,10 +14,10 @@ var (
 
 type UserMgr struct {
 	onlineUsers map[int]*UserProcess0
-	userStatus  map[int]int //维护用户状态。key为ID，value为几个用户状态
+	userStatus  sync.Map //维护用户状态。key为ID，value为几个用户状态。由于是新加的，所以要记得初始化！
 }
 
-//完成对userMgr的初始化工作
+// 完成对userMgr的初始化工作
 func init() {
 	userMgr = &UserMgr{
 		onlineUsers: make(map[int]*UserProcess0, 1024),

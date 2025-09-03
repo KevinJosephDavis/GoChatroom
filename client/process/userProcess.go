@@ -98,6 +98,8 @@ func (uspc *UserProcess) Login(userID int, userPassword string) (err error) {
 		CurUser.UserStatus = message.UserOnline
 		CurUser.UserName = loginResMes.UserName
 
+		fmt.Printf("用户%s (ID:%d) 登录成功!", CurUser.UserName, CurUser.UserID)
+		fmt.Println()
 		fmt.Println("当前在线用户如下：")
 		for i, v := range loginResMes.UserIDs {
 			if v == loginResMes.UserID {

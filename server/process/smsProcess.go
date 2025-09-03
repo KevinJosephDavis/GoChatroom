@@ -95,3 +95,70 @@ func (smsp *SmsProcess) SendPrivateMes(mes *message.Message) {
 		}
 	}
 }
+
+// SendNormalOfflineMes 下线：第二步 针对用户正常退出的情况，服务端通知其它在线用户该用户下线
+func (smsp *SmsProcess) SendNormalOfflineMes(mes *message.Message) {
+	//因为用户正常退出，因此服务端可以收到客户端发送的mes
+	var normalOfflineMes message.OfflineMes
+	err := json.Unmarshal([]byte(mes.Data), &normalOfflineMes)
+	if err != nil {
+		fmt.Println("SendNormalOfflineMes json.Unmarshal err=", err)
+		return
+	}
+
+	//反序列化后得到了下线用户的ID、昵称、下线时间
+	//下一步要对服务端维护的两个map进行crud
+
+	//1.把这个用户从onlineUser中删除，调用userMgr的delete函数
+	userMgr.DeleteOnlineUser(normalOfflineMes.UserID)
+
+	//2.改变这个用户的状态
+	//userMgr.userStatus[normalOfflineMes.UserID] = message.UserOffline
+	//使用sync.map，避免初始化，保证线程安全
+	userMgr.userStatus.Store(normalOfflineMes.UserID, message.UserOffline)
+
+	//服务端自身已经处理完，接下来服务端要发信息，告诉其它在线用户这个用户下线了
+	var resMes message.Message
+	resMes.Type = message.OfflineResMesType
+
+	var offlineResMes message.OfflineResMes
+	offlineResMes.UserID = normalOfflineMes.UserID
+	offlineResMes.UserName = normalOfflineMes.UserName
+	offlineResMes.Time = normalOfflineMes.Time
+	offlineResMes.Reason = normalOfflineMes.Reason
+	data, err := json.Marshal(offlineResMes)
+	if err != nil {
+		fmt.Println("SendNormalOfflineMes json.Marshal err=", err)
+		return
+	}
+
+	resMes.Data = string(data)
+
+	FinalData, err := json.Marshal(resMes)
+	if err != nil {
+		fmt.Println("SendNormalOfflineMes json.Marshal err=", err)
+		return
+	}
+
+	//通知所有其它在线用户
+	for id, up := range userMgr.onlineUsers {
+		if id == normalOfflineMes.UserID {
+			continue //过滤掉自己。其实按道理来说不会出现这种情况，因为前面已经delete这个下线用户了
+		}
+		tf := &utils.Transfer{
+			Conn: up.Conn,
+		}
+		err = tf.WritePkg(FinalData)
+		if err != nil {
+			fmt.Println("SendNormalOfflineMes json.Marshal err=", err)
+		}
+	}
+}
+
+// SendAbnormalOfflineMes 下线：第二步 针对用户非正常退出的情况，服务端向在线用户发送某用户下线的信息
+func (smsp *SmsProcess) SendAbnormalOfflineMes(userID int, userName string) {
+	//由于用户非正常退出，服务器是无法接收到客户端发过来的下线信息的
+	//因此，在上层需要写一个心跳检测，每隔5秒检测用户是否与服务端保持连接
+	//如果用户没有保持连接又没有发送OfflineMes，就在这个if中调用这个函数
+
+}
