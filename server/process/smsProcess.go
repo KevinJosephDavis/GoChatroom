@@ -29,14 +29,15 @@ func (smsp *SmsProcess) SendGroupMes(mes *message.Message) {
 		return
 	}
 	// 反序列化 mes.Data 主要是为了获取发送者的 UserID，避免给自己发消息
-	for id, up := range userMgr.onlineUsers {
-		//过滤掉自己
+	GetUserMgr().onlineUsers.Range(func(key, value interface{}) bool {
+		id := key.(int)
+		up := value.(*UserProcess0)
 		if id == groupMes.Sender.UserID {
-			continue
+			return true //继续遍历
 		}
-
 		smsp.SendMesToEachOnlineUser(data, up.Conn) //获取每个在线用户的控制器，得到其与服务端的连接，进而发送信息
-	}
+		return true
+	})
 }
 
 // SendMesToEachOnlineUser 广播：给每个用户发消息
@@ -74,26 +75,23 @@ func (smsp *SmsProcess) SendPrivateMes(mes *message.Message) {
 	}
 
 	mes.Type = message.SmsPrivateResMesType
-	data, err := json.Marshal(mes) //序列化mes，将其转成byte切片，以便后续作为参数传入
+	data, err := json.Marshal(mes)
 	if err != nil {
 		fmt.Println("SendPrivateMes json.Marshal err=", err)
 		return
 	}
 
-	for id, uspc := range userMgr.onlineUsers {
-		if id == smsPrivateMes.ReceiverID {
-			//ID 匹配，检查是否在线
-			_, ok := userMgr.onlineUsers[id]
-			if !ok {
-				//如果不在线，调用离线留言功能（后续补充）
-				fmt.Println("用户不在线或不存在，无法发送私聊消息")
-				return
-			} else {
-				smsp.SendMesToSpecifiedUser(data, uspc.Conn) //发送消息给该用户。uspc:拿到该用户与服务器的连接
-				break
-			}
-		}
+	// 直接查找目标用户，不需要遍历，从O(n)优化为O(1)
+	value, exist := GetUserMgr().onlineUsers.Load(smsPrivateMes.ReceiverID)
+	if !exist {
+		fmt.Println("用户不在线或不存在，无法发送私聊消息")
+		// 调用离线留言功能
+		return
 	}
+	uspc := value.(*UserProcess0)
+
+	// 发送私聊消息
+	smsp.SendMesToSpecifiedUser(data, uspc.Conn)
 }
 
 // SendNormalOfflineMes 下线：第二步 针对用户正常退出的情况，服务端通知其它在线用户该用户下线
@@ -110,12 +108,10 @@ func (smsp *SmsProcess) SendNormalOfflineMes(mes *message.Message) {
 	//下一步要对服务端维护的两个map进行crud
 
 	//1.把这个用户从onlineUser中删除，调用userMgr的delete函数
-	userMgr.DeleteOnlineUser(normalOfflineMes.UserID)
+	GetUserMgr().DeleteOnlineUser(normalOfflineMes.UserID)
 
 	//2.改变这个用户的状态
-	//userMgr.userStatus[normalOfflineMes.UserID] = message.UserOffline
-	//使用sync.map，避免初始化，保证线程安全
-	userMgr.userStatus.Store(normalOfflineMes.UserID, message.UserOffline)
+	GetUserMgr().userStatus.Store(normalOfflineMes.UserID, message.UserOffline)
 
 	//服务端自身已经处理完，接下来服务端要发信息，告诉其它在线用户这个用户下线了
 	var resMes message.Message
@@ -141,18 +137,32 @@ func (smsp *SmsProcess) SendNormalOfflineMes(mes *message.Message) {
 	}
 
 	//通知所有其它在线用户
-	for id, up := range userMgr.onlineUsers {
+	GetUserMgr().onlineUsers.Range(func(key, value interface{}) bool {
+		id, ok := key.(int)
+		if !ok {
+			return true //跳过无效key
+		}
 		if id == normalOfflineMes.UserID {
-			continue //过滤掉自己。其实按道理来说不会出现这种情况，因为前面已经delete这个下线用户了
+			return true //继续遍历，过滤掉自己
+			// 其实按道理来说不会出现这种情况，因为前面已经delete该下线用户了
+		}
+		up, ok := value.(*UserProcess0)
+		if !ok || up == nil {
+			return true //跳过无效up
+		}
+		if up.Conn == nil {
+			return true
 		}
 		tf := &utils.Transfer{
 			Conn: up.Conn,
 		}
+
 		err = tf.WritePkg(FinalData)
 		if err != nil {
 			fmt.Println("SendNormalOfflineMes json.Marshal err=", err)
 		}
-	}
+		return true
+	})
 }
 
 // SendAbnormalOfflineMes 下线：第二步 针对用户非正常退出的情况，服务端向在线用户发送某用户下线的信息

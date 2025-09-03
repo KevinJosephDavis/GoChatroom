@@ -21,7 +21,8 @@ func ShowMenu() {
 	fmt.Println("\t3.私聊")
 	fmt.Println("\t4.信息列表")
 	fmt.Println("\t5.退出系统")
-	fmt.Println("\t请选择1-5")
+	fmt.Println("\t6.注销用户")
+	fmt.Println("\t请选择1-6")
 	var choice int
 	var content string
 
@@ -54,6 +55,8 @@ func ShowMenu() {
 		time.Sleep(100 * time.Millisecond) //确保消息发送过去
 		fmt.Println("再见！")
 		return
+	case 6:
+		fmt.Println("您确定要注销账户吗？")
 	default:
 		fmt.Println("输入有误，请重新输入")
 	}
