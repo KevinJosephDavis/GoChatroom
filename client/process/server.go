@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"time"
 
 	"github.com/kevinjosephdavis/chatroom/common/message"
 	"github.com/kevinjosephdavis/chatroom/server/utils"
@@ -25,7 +26,6 @@ func ShowMenu() {
 	var choice int
 	var content string
 
-	//因为总会使用到SmsProcess实例，因此将其定义在switch外部。防止多次创建
 	smsp := &SmsProcess{}
 	fmt.Scanf("%d\n", &choice)
 	switch choice {
@@ -50,7 +50,10 @@ func ShowMenu() {
 		fmt.Println("查看信息列表") //离线留言使用
 	case 5:
 		fmt.Println("您选择退出系统")
-		os.Exit(0) //最好先和服务端说一声
+		smsp.SendOfflineMes(CurUser.UserID, CurUser.UserName, time.Now().Unix())
+		time.Sleep(100 * time.Millisecond) //确保消息发送过去
+		fmt.Println("再见！")
+		os.Exit(0)
 	default:
 		fmt.Println("输入有误，请重新输入")
 	}
@@ -63,8 +66,7 @@ func serverProcessMes(conn net.Conn) {
 		Conn: conn,
 	}
 	for {
-		//fmt.Println("客户端正在等待读取服务器发送的消息")
-		mes, err := tf.ReadPkg() //阻塞
+		mes, err := tf.ReadPkg()
 		if err != nil {
 			fmt.Println("tf.ReadPkg() err=", err)
 			return
@@ -79,6 +81,8 @@ func serverProcessMes(conn net.Conn) {
 			outputGroupMes(&mes)
 		case message.SmsPrivateResMesType:
 			outputPrivateMes(&mes)
+		case message.OfflineResMesType:
+			outputOfflineMes(&mes)
 		default:
 			fmt.Println("返回了一个未知消息类型")
 		}

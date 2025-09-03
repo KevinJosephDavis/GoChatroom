@@ -13,10 +13,8 @@ import (
 )
 
 type UserProcess struct {
-	//暂时不需要字段
 }
 
-// Login 关联一个用户登录的方法
 // Login 写一个函数，完成登录
 func (uspc *UserProcess) Login(userID int, userPassword string) (err error) {
 

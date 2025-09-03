@@ -11,7 +11,6 @@ import (
 )
 
 type SmsProcess struct {
-	//暂时不需要字段
 }
 
 // SendGroupMes 广播：第二步 服务端接收发送方的信息，遍历map将信息发出

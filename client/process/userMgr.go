@@ -14,15 +14,16 @@ var CurUser model.CurUser //用户登录成功后完成对CurUser的初始化
 // 在客户端显示当前在线的用户
 func outputOnlineUser() {
 	fmt.Println("当前在线用户：")
-	for _, user := range onlineUsers {
+	for _, user := range onlineUsers { //这里的user.UserName发生了丢包情况
 		if user.UserID == CurUser.UserID {
 			continue
 		}
 		fmt.Printf("%s (ID:%d):", user.UserName, user.UserID)
+		fmt.Println()
 	}
 }
 
-// 编写一个方法处理返回的信息
+// updateUserStatus 上线：第三步 处理服务端返回的信息并输出
 func updateUserStatus(notifyUserStatusMes *message.NotifyUserStatusMes) {
 
 	user, ok := onlineUsers[notifyUserStatusMes.UserID]
@@ -30,15 +31,13 @@ func updateUserStatus(notifyUserStatusMes *message.NotifyUserStatusMes) {
 		//原来没有
 		user := &message.User{
 			UserID:     notifyUserStatusMes.UserID,
+			UserName:   notifyUserStatusMes.UserName,
 			UserStatus: notifyUserStatusMes.Status,
 		}
-
-		user.UserStatus = notifyUserStatusMes.Status
 		onlineUsers[notifyUserStatusMes.UserID] = user
-		outputOnlineUser()
-		return
+	} else {
+		user.UserStatus = notifyUserStatusMes.Status
+		user.UserName = notifyUserStatusMes.UserName
 	}
-	// 如果用户已存在，更新其状态
-	user.UserStatus = notifyUserStatusMes.Status
 	outputOnlineUser()
 }

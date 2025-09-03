@@ -41,6 +41,8 @@ func (prc *Processor) ServerProcessMes(mes *message.Message) (err error) {
 		//创建一个SmsProcess实例完成发送私聊消息的功能
 		smsProcess := &process2.SmsProcess{}
 		smsProcess.SendPrivateMes(mes)
+	case message.OfflineMesType:
+		//创建一个SmsProcess实例完成处理用户下线的功能
 	default:
 		fmt.Println("消息类型不存在，无法处理...")
 	}

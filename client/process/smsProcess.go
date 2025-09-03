@@ -92,3 +92,38 @@ func (smsp *SmsProcess) SendPrivateMes(content string, receiverID int) (err erro
 
 	return
 }
+
+// SendOfflineMes 下线：第一步 客户端向服务端发送下线信息（正常退出）
+func (smsp *SmsProcess) SendOfflineMes(userID int, userName string, Time int64) (err error) {
+	var mes message.Message
+	mes.Type = message.OfflineMesType
+
+	var offlineMes message.OfflineMes
+	offlineMes.UserID = userID
+	offlineMes.UserName = userName
+	offlineMes.Time = Time
+	offlineMes.Reason = message.Normal //能够发送offlineMes，属于正常退出
+	//正常退出的几种情况：1.用户选择5 退出系统 2.用户输入exit 或 ctrl+C
+	//后续要在上层写 收集用户键入信息的函数
+	//调用完这个SendOfflineMes函数后，要关闭连接
+
+	data, err := json.Marshal(offlineMes)
+	if err != nil {
+		fmt.Println("SendOfflineMes json.Marshal err=", err)
+		return
+	}
+
+	mes.Data = string(data)
+
+	data, err = json.Marshal(mes)
+	if err != nil {
+		fmt.Println("SendOfflineMes json.Marshal err=", err)
+		return
+	}
+
+	tf := &utils.Transfer{
+		Conn: CurUser.Conn,
+	}
+	err = tf.WritePkg(data)
+	return
+}

@@ -10,6 +10,10 @@ const (
 	SmsMesType              = "SmsMes"
 	SmsPrivateMesType       = "SmsPrivateMes"
 	SmsPrivateResMesType    = "SmsPrivateResMes"
+	OfflineMesType          = "OfflineMes"
+	OfflineResMesType       = "OfflineResMes"
+	OnlineMesType           = "OnlineMes"
+	OnlineResMesType        = "OnlineResMes"
 )
 
 //定义几个用户状态的常量
@@ -19,56 +23,89 @@ const (
 	UserBusyStatus
 )
 
+//定义两个退出情况
+const (
+	Abnormal = iota
+	Normal
+)
+
 type Message struct {
-	Type string `json:"type"` //消息类型
+	Type string `json:"type"`
 	Data string `json:"data"`
 }
 
-//LoginMes 先定义两个消息，后面需要再增加
+//LoginMes 登录：用户传给服务端的消息
 type LoginMes struct {
-	UserID       int    `json:"userID"`       // 用户ID
-	UserPassword string `json:"userPassword"` // 用户密码
-	UserName     string `json:"userName"`     // 用户名
+	UserID       int    `json:"userID"`
+	UserPassword string `json:"userPassword"`
+	UserName     string `json:"userName"`
 }
 
 type LoginResMes struct {
-	Code      int      `json:"code"`      // 返回状态码 500 表示该用户未注册 200 表示登陆成功
-	Error     string   `json:"error"`     // 返回错误信息
-	UserIDs   []int    `json:"userIDs"`   //保存用户ID的切片
-	UserNames []string `json:"userNames"` //保存用户名的切片
+	Code      int      `json:"code"` // 返回状态码 500 表示该用户未注册 200 表示登陆成功
+	Error     string   `json:"error"`
+	UserIDs   []int    `json:"userIDs"`
+	UserNames []string `json:"userNames"`
 	User
 }
 
 type RegisterMes struct {
-	User User `json:"user"` //类型就是User结构体
+	User User `json:"user"`
 }
 
 type RegisterResMes struct {
-	Code  int    `json:"code"`  // 返回状态码 400 表示该用户已经占用 200 表示注册成功
-	Error string `json:"error"` // 返回错误信息
+	Code  int    `json:"code"` // 返回状态码 400 表示该用户已经占用 200 表示注册成功
+	Error string `json:"error"`
 }
 
-// NotifyUserStatusMes 为了配合服务器端推送用户上下线变化消息，新定义一个类型
+// NotifyUserStatusMes 提醒其它用户：有用户的在线状态发生了变化
 type NotifyUserStatusMes struct {
-	UserID int `json:"userID"`
-	Status int `json:"status"`
+	UserID   int    `json:"userID"`
+	UserName string `json:"userName"`
+	Status   int    `json:"status"`
 }
 
 // GroupMes 广播：客户端发送的消息 由于返回的消息也只需要包含内容+发送者，因此无需再定义一个GroupResMes
 type GroupMes struct {
-	Content string `json:"content"` //消息内容
-	Sender  User   //匿名结构体继承。复用User，注意不带密码
+	Content string `json:"content"`
+	Sender  User   `json:"sender"`
 }
 
 // PrivateMes 私聊：客户端发送的消息
 type PrivateMes struct {
-	Content    string `json:"content"` //消息内容
-	Sender     User   //发送人
-	ReceiverID int    `json:"receiverID"` //接收人的ID
+	Content    string `json:"content"`
+	Sender     User   `json:"sender"`
+	ReceiverID int    `json:"receiverID"`
 }
 
 // PrivateResMes 私聊：服务端返回给客户端的消息
 type PrivateResMes struct {
 	Content string `json:"content"`
-	Sender  User
+	Sender  User   `json:"sender"`
+}
+
+// OfflineMes 下线：客户端传给服务端的信息
+type OfflineMes struct {
+	UserID   int    `json:"userID"`
+	UserName string `json:"userName"`
+	Reason   int    `json:"reason"`
+	Time     int64  `json:"time"` //下线时间戳
+}
+
+// OfflineResMes 下线：服务端传给在线用户的消息
+type OfflineResMes struct {
+	UserID   int    `json:"UserID"`
+	UserName string `json:"userName"`
+}
+
+// OnlineMes 上线：客户端传给服务端的信息
+type OnlineMes struct {
+	UserID   int    `json:"userID"`
+	UserName string `json:"userName"`
+}
+
+// OnlineResMes 上线：服务端传给其它在线用户的信息
+type OnlineResMes struct {
+	UserID   int    `json:"userID"`
+	UserName string `json:"userName"`
 }

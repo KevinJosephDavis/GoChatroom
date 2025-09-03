@@ -11,6 +11,7 @@ var (
 
 type UserMgr struct {
 	onlineUsers map[int]*UserProcess0
+	userStatus  map[int]int //维护用户状态。key为ID，value为几个用户状态
 }
 
 //完成对userMgr的初始化工作
