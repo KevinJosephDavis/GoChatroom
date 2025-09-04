@@ -14,7 +14,7 @@ var (
 
 type UserMgr struct {
 	onlineUsers sync.Map //map[int]*UserProcess0
-	userStatus  sync.Map //维护用户状态。key为ID，value为几个用户状态
+	userStatus  sync.Map //维护用户状态。key为ID，value为几个用户状态。事实上维护了所有用户
 }
 
 // InitUserMgr 完成对userMgr的初始化工作
@@ -34,15 +34,13 @@ func GetUserMgr() *UserMgr {
 	return userMgr
 }
 
-// AddOnlineUser 完成对onlineUsers的添加
+// AddOnlineUser 添加上线用户
 func (usmng *UserMgr) AddOnlineUser(up *UserProcess0) {
-	//usmng.onlineUsers[up.UserID] = up
 	usmng.onlineUsers.Store(up.UserID, up)
 }
 
-// DeleteOnlineUser 删除
+// DeleteOnlineUser 删除下线用户
 func (usmng *UserMgr) DeleteOnlineUser(userID int) {
-	//delete(usmng.onlineUsers, userID)
 	usmng.onlineUsers.Delete(userID)
 }
 
@@ -51,7 +49,7 @@ func (usmng *UserMgr) GetAllOnlineUsers() []*UserProcess0 {
 	var onlineUsers []*UserProcess0
 
 	usmng.onlineUsers.Range(func(key, value interface{}) bool {
-		onlineUsers = append(onlineUsers, value.(*UserProcess0)) // 类型断言
+		onlineUsers = append(onlineUsers, value.(*UserProcess0))
 		return true
 	})
 
@@ -66,7 +64,6 @@ func (usmng *UserMgr) GetOnlineUserByID(userID int) (up *UserProcess0, err error
 		return
 	}
 
-	//类型断言：将interface{}转换为*UserProcess0
 	up, assertOk := value.(*UserProcess0)
 	if !assertOk {
 		err = fmt.Errorf("用户%d 数据格式错误", userID)
@@ -74,3 +71,10 @@ func (usmng *UserMgr) GetOnlineUserByID(userID int) (up *UserProcess0, err error
 	}
 	return
 }
+
+// DeleteExistUser 将注销用户删除
+func (usmng *UserMgr) DeleteExistUser(userID int) {
+	usmng.userStatus.Delete(userID)
+}
+
+//需不需要写一个AddNewUser？看一下注册后登录的逻辑

@@ -127,3 +127,34 @@ func (smsp *SmsProcess) SendOfflineMes(userID int, userName string, Time int64) 
 	err = tf.WritePkg(data)
 	return
 }
+
+// SendDeleteAccountMes 注销：第一步 客户端向服务端发送下线信息
+func (smsp *SmsProcess) SendDeleteAccountMes(userID int, userName string, Time int64) (err error) {
+	var mes message.Message
+	mes.Type = message.DeleteAccountMesType
+
+	var deleteAccountMes message.DeleteAccountMes
+	deleteAccountMes.User.UserID = userID
+	deleteAccountMes.User.UserName = userName
+	deleteAccountMes.Time = Time
+
+	data, err := json.Marshal(deleteAccountMes)
+	if err != nil {
+		fmt.Println("SendLogoutMes json.Marshal err=", err)
+		return
+	}
+
+	mes.Data = string(data)
+
+	data, err = json.Marshal(mes)
+	if err != nil {
+		fmt.Println("SendLogoutMes json.Marshal err=", err)
+		return
+	}
+
+	tf := &utils.Transfer{
+		Conn: CurUser.Conn,
+	}
+	err = tf.WritePkg(data)
+	return
+}

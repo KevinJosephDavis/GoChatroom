@@ -8,8 +8,9 @@ import (
 )
 
 // 客户端要维护的map
-var onlineUsers map[int]*message.User = make(map[int]*message.User, 1000)
-var CurUser model.CurUser //用户登录成功后完成对CurUser的初始化
+var onlineUsers map[int]*message.User = make(map[int]*message.User, 1000) //后续考虑改成sync.Map
+var CurUser model.CurUser                                                 //用户登录成功后完成对CurUser的初始化
+//后续考虑客户端也维护一个所有用户的map
 
 // 在客户端显示当前在线的用户
 func outputOnlineUser() {

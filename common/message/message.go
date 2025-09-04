@@ -1,6 +1,7 @@
 // Package message provides shared types and structures for the chatroom server.
 package message
 
+//命名还不够清晰。找个时间修改一下
 const (
 	LoginMesType            = "LoginMes"
 	LoginResMesType         = "LoginResMes"
@@ -14,6 +15,8 @@ const (
 	OfflineResMesType       = "OfflineResMes"
 	OnlineMesType           = "OnlineMes"
 	OnlineResMesType        = "OnlineResMes"
+	DeleteAccountMesType    = "DeleteAccountMes"
+	DeleteAccountResMesType = "DeleteAccountResMes"
 )
 
 //定义几个用户状态的常量
@@ -110,4 +113,16 @@ type OnlineMes struct {
 type OnlineResMes struct {
 	UserID   int    `json:"userID"`
 	UserName string `json:"userName"`
+}
+
+// DeleteAccountMes 注销：客户端传给服务端的信息
+type DeleteAccountMes struct {
+	User User  `json:"user"`
+	Time int64 `json:"time"`
+}
+
+// DeleteAccountResMes 注销：服务端传给其它在线用户的信息
+type DeleteAccountResMes struct {
+	User User  `json:"user"`
+	Time int64 `json:"time"`
 }

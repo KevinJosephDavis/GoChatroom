@@ -7,6 +7,7 @@ import (
 	"net"
 
 	"github.com/kevinjosephdavis/chatroom/common/message"
+	"github.com/kevinjosephdavis/chatroom/server/model"
 	"github.com/kevinjosephdavis/chatroom/server/utils"
 )
 
@@ -165,10 +166,73 @@ func (smsp *SmsProcess) SendNormalOfflineMes(mes *message.Message) {
 	})
 }
 
-// SendAbnormalOfflineMes 下线：第二步 针对用户非正常退出的情况，服务端向在线用户发送某用户下线的信息
+// SendAbnormalOfflineMes 下线：第二步 针对用户非正常退出的情况，服务端向在线用户发送该用户下线这一消息
 func (smsp *SmsProcess) SendAbnormalOfflineMes(userID int, userName string) {
 	//由于用户非正常退出，服务器是无法接收到客户端发过来的下线信息的
 	//因此，在上层需要写一个心跳检测，每隔5秒检测用户是否与服务端保持连接
 	//如果用户没有保持连接又没有发送OfflineMes，就在这个if中调用这个函数
 
+}
+
+// SendDeleteAccountMes 注销：第二步 服务端将注销用户从两个map中delete，并向其它在线用户发送该用户注销这一消息
+func (smsp *SmsProcess) SendDeleteAccountMes(mes *message.Message) {
+	var DeleteAccountMes message.DeleteAccountMes
+	err := json.Unmarshal([]byte(mes.Data), &DeleteAccountMes)
+	if err != nil {
+		fmt.Println("SendDeleteAccountMes json.Unmarshal err=", err)
+		return
+	}
+
+	//反序列化后得到了下线用户的ID、昵称、下线时间
+	//下一步将其从这两个map中删除
+	GetUserMgr().DeleteOnlineUser(DeleteAccountMes.User.UserID)
+	GetUserMgr().DeleteExistUser(DeleteAccountMes.User.UserID)
+
+	err = model.MyUserDao.DeleteAccount(&DeleteAccountMes.User)
+	if err != nil {
+		fmt.Println("销户失败，err=", err)
+		fmt.Println()
+		return
+	}
+
+	//服务端自身已处理完，接下来服务端要告诉其它在线用户有用户注销了
+	var resMes message.Message
+	resMes.Type = message.DeleteAccountResMesType
+
+	var deleteAccountResMes message.DeleteAccountResMes
+	deleteAccountResMes.User.UserID = DeleteAccountMes.User.UserID
+	deleteAccountResMes.User.UserName = DeleteAccountMes.User.UserName
+	deleteAccountResMes.Time = DeleteAccountMes.Time
+	data, err := json.Marshal(deleteAccountResMes)
+	if err != nil {
+		fmt.Println("SendDeleteAccountMes json.Marshal err=", err)
+		return
+	}
+
+	resMes.Data = string(data)
+
+	FinalData, err := json.Marshal(resMes)
+	if err != nil {
+		fmt.Println("SendDeleteAccountMes json.Marshal err=", err)
+		return
+	}
+
+	//通知其它在线用户
+	GetUserMgr().onlineUsers.Range(func(key, value interface{}) bool {
+		up, ok := value.(*UserProcess0)
+		if !ok || up == nil {
+			return true
+		}
+		if up.Conn == nil {
+			return true
+		}
+		tf := &utils.Transfer{
+			Conn: up.Conn,
+		}
+		err = tf.WritePkg(FinalData)
+		if err != nil {
+			fmt.Println("SendDeleteAccountMes json.Marshal err=", err)
+		}
+		return true
+	})
 }

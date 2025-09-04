@@ -57,6 +57,31 @@ func ShowMenu() {
 		return
 	case 6:
 		fmt.Println("您确定要注销账户吗？")
+		fmt.Println("请输入Y（确定注销）或N（取消注销）：")
+		var logoutChoice string
+		fmt.Scanf("%s\n", &logoutChoice)
+		switch logoutChoice {
+		case "Y":
+			fmt.Println("您选择了注销用户")
+			smsp.SendDeleteAccountMes(CurUser.UserID, CurUser.UserName, time.Now().Unix())
+			time.Sleep(100 * time.Millisecond)
+			fmt.Println("感谢您的使用！再见！")
+			return
+		case "y":
+			fmt.Println("您选择了注销用户")
+			smsp.SendDeleteAccountMes(CurUser.UserID, CurUser.UserName, time.Now().Unix())
+			time.Sleep(100 * time.Millisecond)
+			fmt.Println("感谢您的使用！再见！")
+			return
+		case "N":
+			fmt.Println("您取消了注销用户操作")
+			fmt.Println()
+		case "n":
+			fmt.Println("您取消了注销用户操作")
+			fmt.Println()
+		default:
+			fmt.Println("输入有误，请重新输入")
+		}
 	default:
 		fmt.Println("输入有误，请重新输入")
 	}
@@ -86,6 +111,8 @@ func serverProcessMes(conn net.Conn) {
 			outputPrivateMes(&mes)
 		case message.OfflineResMesType:
 			outputOfflineMes(&mes)
+		case message.DeleteAccountResMesType:
+			outputDeleteAccountMes(&mes)
 		default:
 			fmt.Println("返回了一个未知消息类型")
 		}

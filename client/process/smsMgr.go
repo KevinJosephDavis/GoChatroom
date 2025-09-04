@@ -35,7 +35,7 @@ func outputPrivateMes(mes *message.Message) {
 	fmt.Println()
 }
 
-// outputOfflineMes 下线：第三步 客户端接收服务端返回的信息，呈现下线的用户ID和昵称
+// outputOfflineMes 下线：第三步 客户端接收服务端返回的信息，呈现下线的用户ID、昵称和下线时间
 func outputOfflineMes(mes *message.Message) {
 	//注意，不管用户是正常下线，还是非正常下线，第三步都调用这个函数（暂时这么考虑）
 	var offlineResMes message.OfflineResMes
@@ -48,14 +48,31 @@ func outputOfflineMes(mes *message.Message) {
 	info := fmt.Sprintf("%s (ID:%d) 于 %s 下线，下线原因是：%s",
 		offlineResMes.UserName,
 		offlineResMes.UserID,
-		getOfflineTime(offlineResMes.Time),
-		getOfflineReason(offlineResMes.Reason))
+		getTime(offlineResMes.Time),
+		getReason(offlineResMes.Reason))
 	fmt.Println(info)
 	fmt.Println()
 }
 
-// getOfflineReason 下线：获取下线原因
-func getOfflineReason(Reason string) string {
+// outputDeleteAccountMes 注销：第三步 客户端接收服务端返回的信息，呈现注销的用户ID、昵称和下线时间
+func outputDeleteAccountMes(mes *message.Message) {
+	var DeleteAccountResMes message.DeleteAccountResMes
+	err := json.Unmarshal([]byte(mes.Data), &DeleteAccountResMes)
+	if err != nil {
+		fmt.Println("outputOfflineMes json.Unmarshal err=", err)
+		return
+	}
+	delete(onlineUsers, DeleteAccountResMes.User.UserID) //将该用户从客户端维护的在线用户map中删除
+	info := fmt.Sprintf("%s (ID:%d) 于 %s 注销了用户",
+		DeleteAccountResMes.User.UserName,
+		DeleteAccountResMes.User.UserID,
+		getTime(DeleteAccountResMes.Time))
+	fmt.Println(info)
+	fmt.Println()
+}
+
+// getReason 下线：获取下线原因
+func getReason(Reason string) string {
 	switch Reason {
 	case message.Normal:
 		return "正常下线"
@@ -66,8 +83,8 @@ func getOfflineReason(Reason string) string {
 	}
 }
 
-// getOfflineTime 下线：获取下线时间
-func getOfflineTime(timeStamp int64) string {
+// getTime 下线/注销：获取下线/注销时间
+func getTime(timeStamp int64) string {
 	//将Unix时间戳转换为time.Time
 	t := time.Unix(timeStamp, 0)
 

@@ -13,9 +13,6 @@ var (
 	MyUserDao *UserDao
 )
 
-//定义一个UserDao结构体
-//完成对User结构体的各种操作
-
 type UserDao struct {
 	pool *redis.Pool
 }
@@ -51,8 +48,7 @@ func (usd *UserDao) getUserByID(conn redis.Conn, id int) (user *User, err error)
 	return
 }
 
-// Login 完成登录的校验
-// Login 完成对用户的验证 如果用户的ID和密码都正确，则返回一个User实例。如果不正确则返回对应的错误信息
+// Login 完成对用户的验证
 func (usd *UserDao) Login(userID int, userPwd string) (user *User, err error) {
 	//先从UserDao的连接池中取出一根连接
 	conn := usd.pool.Get()
@@ -70,6 +66,7 @@ func (usd *UserDao) Login(userID int, userPwd string) (user *User, err error) {
 	return
 }
 
+// Register 完成用户注册
 func (usd *UserDao) Register(user *message.User) (err error) {
 	//先从UserDao的连接池中取出一根连接
 	conn := usd.pool.Get()
@@ -86,11 +83,31 @@ func (usd *UserDao) Register(user *message.User) (err error) {
 		return
 	}
 
-	//入库
+	//存入数据库
 	_, err = conn.Do("HSet", "users", user.UserID, string(data))
 	if err != nil {
 		fmt.Println("保存注册用户出错 err=", err)
 		return
 	}
+	return
+}
+
+// DeleteAccount 完成用户注销
+func (usd *UserDao) DeleteAccount(user *message.User) (err error) {
+	conn := usd.pool.Get()
+	defer conn.Close()
+
+	_, err = usd.getUserByID(conn, user.UserID)
+	if err != nil {
+		fmt.Println("用户不存在，无法删除 err=", err)
+		return
+	}
+
+	_, err = conn.Do("HDEL", "users", user.UserID)
+	if err != nil {
+		fmt.Println("从数据库中删除用户出错 err=", err)
+		return
+	}
+	fmt.Printf("用户%d已从数据库销户", user.UserID)
 	return
 }

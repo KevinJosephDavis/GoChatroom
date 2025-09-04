@@ -11,18 +11,16 @@ import (
 	"github.com/kevinjosephdavis/chatroom/server/utils"
 )
 
-// Processor 先创建一个Processor结构体
+// Processor 服务端控制器
 type Processor struct {
 	Conn net.Conn
 }
 
-// ServerProcessMes 编写一个ServerProcessMes函数
-// 功能：根据客户端发送消息种类不同，决定调用哪个函数来处理
+// ServerProcessMes 根据客户端发送消息种类不同，决定调用哪个函数来处理
 func (prc *Processor) ServerProcessMes(mes *message.Message) (err error) {
 	switch mes.Type {
 	case message.LoginMesType:
 		//调用处理登录的函数
-		//创建一个UserProcess实例
 		uspc := &process2.UserProcess0{
 			Conn: prc.Conn,
 		}
@@ -34,17 +32,21 @@ func (prc *Processor) ServerProcessMes(mes *message.Message) (err error) {
 		}
 		err = uspc.ServerProcessRegister(mes)
 	case message.SmsMesType:
-		//创建一个SmsProcess实例完成转发消息的功能
+		//处理广播
 		smsProcess := &process2.SmsProcess{}
 		smsProcess.SendGroupMes(mes)
 	case message.SmsPrivateMesType:
-		//创建一个SmsProcess实例完成发送私聊消息的功能
+		//处理用户私聊
 		smsProcess := &process2.SmsProcess{}
 		smsProcess.SendPrivateMes(mes)
 	case message.OfflineMesType:
-		//创建一个SmsProcess实例完成处理用户下线的功能
+		//处理用户下线
 		smsProcess := &process2.SmsProcess{}
 		smsProcess.SendNormalOfflineMes(mes)
+	case message.DeleteAccountMesType:
+		//处理用户注销
+		smsProcess := &process2.SmsProcess{}
+		smsProcess.SendDeleteAccountMes(mes)
 	default:
 		fmt.Println("消息类型不存在，无法处理...")
 	}
