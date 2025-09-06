@@ -154,34 +154,44 @@ func (uspc *UserProcess0) ServerProcessLogin(mes *message.Message) (err error) {
 			loginResMes.Error = "服务器内部错误..."
 		}
 	} else {
-		loginResMes.Code = 200
-		//因为用户登录成功，所以要把该登录成功的用户放入到UserMgr中，表示该用户上线了
-		//将登录成功的用户的userID赋值给uspc
-		uspc.UserID = loginMes.UserID
-		uspc.UserName = user.UserName
-		GetUserMgr().AddOnlineUser(uspc)
-		uspc.NotifyOtherOnlineUserOnline(uspc.UserID, uspc.UserName) //一登录成功，就告诉其它用户自己上线了
-		//将当前在线用户的ID放入到loginResMes.UserIDs
-		GetUserMgr().onlineUsers.Range(func(key, value interface{}) bool {
-			id, ok := key.(int)
-			if !ok {
+		//添加安全检查
+		if user == nil {
+			loginResMes.Code = 505
+			loginResMes.Error = "服务器内部错误：用户数据为空"
+		} else {
+			loginResMes.Code = 200
+			//因为用户登录成功，所以要把该登录成功的用户放入到UserMgr中，表示该用户上线了
+			//将登录成功的用户的userID赋值给uspc
+			uspc.UserID = loginMes.UserID
+			uspc.UserName = user.UserName
+			GetUserMgr().AddOnlineUser(uspc)
+			uspc.NotifyOtherOnlineUserOnline(uspc.UserID, uspc.UserName) //一登录成功，就告诉其它用户自己上线了
+			//将当前在线用户的ID放入到loginResMes.UserIDs
+			GetUserMgr().onlineUsers.Range(func(key, value interface{}) bool {
+				id, ok := key.(int)
+				if !ok {
+					return true
+				}
+				up, ok0 := value.(*UserProcess0)
+				if !ok0 || up == nil {
+					return true
+				}
+				loginResMes.UserIDs = append(loginResMes.UserIDs, id)
+				loginResMes.UserNames = append(loginResMes.UserNames, up.UserName)
 				return true
-			}
-			up, ok0 := value.(*UserProcess0)
-			if !ok0 || up == nil {
-				return true
-			}
-			loginResMes.UserIDs = append(loginResMes.UserIDs, id)
-			loginResMes.UserNames = append(loginResMes.UserNames, up.UserName)
-			return true
-		})
-		fmt.Println(user, "登录成功")
+			})
+			fmt.Println(user, "登录成功")
+		}
+
 	}
 
-	loginResMes.UserID = user.UserID
-	loginResMes.UserName = user.UserName
-	loginResMes.UserPwd = user.UserPwd
-	loginResMes.UserStatus = user.UserStatus
+	if user != nil {
+		loginResMes.UserID = user.UserID
+		loginResMes.UserName = user.UserName
+		loginResMes.UserPwd = user.UserPwd
+		loginResMes.UserStatus = user.UserStatus
+	}
+
 	data, err := json.Marshal(loginResMes)
 	if err != nil {
 		fmt.Println("json.Marshal err=", err)

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/kevinjosephdavis/chatroom/client/model"
 	"github.com/kevinjosephdavis/chatroom/common/message"
 )
 
@@ -62,12 +63,51 @@ func outputDeleteAccountMes(mes *message.Message) {
 		fmt.Println("outputOfflineMes json.Unmarshal err=", err)
 		return
 	}
-	delete(onlineUsers, DeleteAccountResMes.User.UserID) //将该用户从客户端维护的在线用户map中删除
-	info := fmt.Sprintf("%s (ID:%d) 于 %s 注销了用户",
-		DeleteAccountResMes.User.UserName,
-		DeleteAccountResMes.User.UserID,
-		getTime(DeleteAccountResMes.Time))
-	fmt.Println(info)
+
+	//判断是否是自己的注销操作
+	if DeleteAccountResMes.User.UserID == CurUser.UserID {
+		fmt.Printf("您的账号 %s (ID:%d) 已成功注销\n",
+			DeleteAccountResMes.User.UserName,
+			DeleteAccountResMes.User.UserID)
+
+		//先发送退出信号，让主循环先退出
+		select {
+		case DeleteAccountChan <- true:
+			fmt.Println("已发送注销退出信号")
+		default:
+			fmt.Println("注销通道已满，尝试其它方式")
+			select {
+			case exitChan <- true:
+			default:
+			}
+		}
+
+		//清理资源在协程中异步执行，避免阻塞消息处理
+		go func() {
+			//稍微延迟，确保主循环先处理退出信号
+			time.Sleep(50 * time.Millisecond)
+
+			//清理资源
+			if cancelFunc != nil {
+				cancelFunc() //通知消息协程退出
+			}
+			if CurUser.Conn != nil {
+				CurUser.Conn.Close() //关闭连接
+			}
+			//由于是本用户注销，因此要清理其客户端状态
+			onlineUsers = make(map[int]*message.User)
+			CurUser = model.CurUser{}
+			fmt.Println("资源清理完成")
+		}()
+	} else {
+		//这是其他用户注销的通知
+		delete(onlineUsers, DeleteAccountResMes.User.UserID) //将该用户从客户端维护的在线用户map中删除
+		info := fmt.Sprintf("%s (ID:%d) 于 %s 注销了用户",
+			DeleteAccountResMes.User.UserName,
+			DeleteAccountResMes.User.UserID,
+			getTime(DeleteAccountResMes.Time))
+		fmt.Println(info)
+	}
 	fmt.Println()
 }
 

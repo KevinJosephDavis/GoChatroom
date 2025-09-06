@@ -63,6 +63,10 @@ func (prc *Processor) process2() (err error) {
 		}
 		mes, err1 := tf.ReadPkg()
 		if err1 != nil {
+			if err1.Error() == "客户端关闭了连接" {
+				fmt.Printf("客户端 %s 主动关闭了连接", tf.Conn.RemoteAddr())
+				return
+			}
 			if err1 == io.EOF {
 				fmt.Println("客户端退出，服务器端也退出")
 				return err1
@@ -70,7 +74,6 @@ func (prc *Processor) process2() (err error) {
 				fmt.Println("readPkg err=", err1)
 				return err1
 			}
-
 		}
 		err = prc.ServerProcessMes(&mes)
 		if err != nil {

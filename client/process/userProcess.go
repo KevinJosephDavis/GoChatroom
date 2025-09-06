@@ -2,11 +2,12 @@
 package process
 
 import (
+	"context"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"net"
-	"os"
+	"time"
 
 	"github.com/kevinjosephdavis/chatroom/common/message"
 	"github.com/kevinjosephdavis/chatroom/server/utils"
@@ -15,7 +16,7 @@ import (
 type UserProcess struct {
 }
 
-// Login 写一个函数，完成登录
+// Login 登录
 func (uspc *UserProcess) Login(userID int, userPassword string) (err error) {
 
 	//1.连接到服务器
@@ -25,8 +26,12 @@ func (uspc *UserProcess) Login(userID int, userPassword string) (err error) {
 		return
 	}
 
-	//延时关闭
-	defer conn.Close()
+	//创建带有取消功能的context
+	ctx, cancel := context.WithCancel(context.Background())
+	cancelFunc = cancel
+
+	//defer conn.Close()
+	//由于用户退出或注销后要回到一级菜单，所以Login函数会return，而别的地方需要用到这个conn，因此注释掉这段代码
 
 	//2.准备通过conn发送消息给服务器
 	var mes message.Message
@@ -110,6 +115,7 @@ func (uspc *UserProcess) Login(userID int, userPassword string) (err error) {
 			//完成客户端的onlineUsers的初始化
 			user := &message.User{
 				UserID:     v,
+				UserName:   loginResMes.UserNames[i],
 				UserStatus: message.UserOnline,
 			}
 			onlineUsers[v] = user
@@ -117,11 +123,39 @@ func (uspc *UserProcess) Login(userID int, userPassword string) (err error) {
 		fmt.Println()
 
 		//这里还需要在客户端起一个协程，保持和服务器端的通讯。如果服务器有数据推送，及时接收并显示在客户端的终端
-		go serverProcessMes(conn)
+		go serverProcessMes(ctx, conn)
 
-		//1.显示二级菜单（登录成功后的菜单）循环显示
 		for {
-			ShowMenu()
+			select {
+			case <-DeleteAccountChan:
+				//收到注销完成信号
+				fmt.Println("注销完成，返回主菜单")
+				return
+			case <-exitChan:
+				//收到普通退出信号
+				fmt.Println("收到退出信号，返回主菜单")
+				if cancelFunc != nil {
+					cancelFunc()
+				}
+				if CurUser.Conn != nil {
+					CurUser.Conn.Close()
+				}
+				return
+			default:
+				//显示菜单并处理用户输入
+				if shouldExit := ShowMenu(); shouldExit {
+					//用户选择退出系统（选项5）
+					fmt.Println("用户选择退出系统，清理资源...")
+					if cancelFunc != nil {
+						cancelFunc()
+					}
+					if CurUser.Conn != nil {
+						CurUser.Conn.Close()
+					}
+					return
+				}
+			}
+			time.Sleep(100 * time.Millisecond)
 		}
 	} else {
 		fmt.Println(loginResMes.Error)
@@ -189,10 +223,9 @@ func (uspc *UserProcess) Register(userID int, userPwd string, userName string) (
 	err = json.Unmarshal([]byte(mes.Data), &registerResMes)
 	if registerResMes.Code == 200 {
 		fmt.Println("注册成功，请重新登录")
-		os.Exit(0)
+		return
 	} else {
 		fmt.Println(registerResMes.Error)
-		os.Exit(0)
+		return
 	}
-	return
 }

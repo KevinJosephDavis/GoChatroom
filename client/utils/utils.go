@@ -4,8 +4,10 @@ package utils
 import (
 	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
+	"strings"
 
 	"github.com/kevinjosephdavis/chatroom/common/message"
 )
@@ -24,7 +26,10 @@ func (tf *Transfer) ReadPkg() (mes message.Message, err error) {
 	_, err = tf.Conn.Read(tf.Buf[:4]) //虽然buf是在readPkg中临时创建的，但conn.Read()会阻塞等待客户端发送数据
 	//客户端发送数据后，Read()将数据写入buf的前4个字节
 	if err != nil {
-		//err = errors.New("read Pkg header error")
+		//检查是否为连接已关闭的错误。如果是，进行特殊处理
+		if strings.Contains(err.Error(), "use of closed network connection") {
+			return mes, errors.New("用户关闭了连接")
+		}
 		return
 	}
 

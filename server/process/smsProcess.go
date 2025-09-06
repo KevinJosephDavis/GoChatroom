@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"time"
 
 	"github.com/kevinjosephdavis/chatroom/common/message"
 	"github.com/kevinjosephdavis/chatroom/server/model"
@@ -183,19 +184,7 @@ func (smsp *SmsProcess) SendDeleteAccountMes(mes *message.Message) {
 		return
 	}
 
-	//反序列化后得到了下线用户的ID、昵称、下线时间
-	//下一步将其从这两个map中删除
-	GetUserMgr().DeleteOnlineUser(DeleteAccountMes.User.UserID)
-	GetUserMgr().DeleteExistUser(DeleteAccountMes.User.UserID)
-
-	err = model.MyUserDao.DeleteAccount(&DeleteAccountMes.User)
-	if err != nil {
-		fmt.Println("销户失败，err=", err)
-		fmt.Println()
-		return
-	}
-
-	//服务端自身已处理完，接下来服务端要告诉其它在线用户有用户注销了
+	//服务端要告诉其它在线用户有用户注销了
 	var resMes message.Message
 	resMes.Type = message.DeleteAccountResMesType
 
@@ -217,13 +206,37 @@ func (smsp *SmsProcess) SendDeleteAccountMes(mes *message.Message) {
 		return
 	}
 
+	//向注销用户自己发送通知（在其被删除之前）
+	if up, exists := GetUserMgr().onlineUsers.Load(DeleteAccountMes.User.UserID); exists {
+		if uspc, ok := up.(*UserProcess0); ok && uspc.Conn != nil {
+			tf := &utils.Transfer{
+				Conn: uspc.Conn,
+			}
+			err := tf.WritePkg(FinalData)
+			if err != nil {
+				fmt.Println("向注销用户发送通知失败：", err)
+			}
+			//稍微延迟，确保消息发送完成
+			time.Sleep(10 * time.Millisecond)
+		}
+	}
+
+	//得到了下线用户的ID、昵称、下线时间
+	//下一步将其从这两个map中删除
+	GetUserMgr().DeleteOnlineUser(DeleteAccountMes.User.UserID)
+	GetUserMgr().DeleteExistUser(DeleteAccountMes.User.UserID)
+
+	err = model.MyUserDao.DeleteAccount(&DeleteAccountMes.User)
+	if err != nil {
+		fmt.Println("销户失败，err=", err)
+		fmt.Println()
+		return
+	}
+
 	//通知其它在线用户
 	GetUserMgr().onlineUsers.Range(func(key, value interface{}) bool {
 		up, ok := value.(*UserProcess0)
-		if !ok || up == nil {
-			return true
-		}
-		if up.Conn == nil {
+		if !ok || up == nil || up.Conn == nil {
 			return true
 		}
 		tf := &utils.Transfer{
