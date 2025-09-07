@@ -126,6 +126,10 @@ func (uspc *UserProcess) Login(userID int, userPassword string) (err error) {
 		go serverProcessMes(ctx, conn)
 
 		for {
+			if CurUser.Conn == nil {
+				fmt.Println("连接已关闭，返回主菜单")
+				return
+			}
 			select {
 			case <-DeleteAccountChan:
 				//收到注销完成信号
