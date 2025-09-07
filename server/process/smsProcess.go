@@ -76,6 +76,22 @@ func (smsp *SmsProcess) SendPrivateMes(mes *message.Message) {
 		return
 	}
 
+	status, err := GetUserMgr().GetUserStatus(smsPrivateMes.ReceiverID)
+	if err != nil {
+		if status == -1 {
+			//要告诉客户端，这个用户不存在
+			errorMes := map[string]interface{}{
+				"type":    message.ErrorResType,
+				"code":    "UserNotExist",
+				"message": "发送对象不存在",
+			}
+			smsp.SendErrorToSender(smsPrivateMes.Sender.UserID, errorMes)
+		} else {
+			fmt.Println("系统错误，err=", err)
+		}
+		return
+	}
+
 	mes.Type = message.SmsPrivateResMesType
 	data, err := json.Marshal(mes)
 	if err != nil {
@@ -96,13 +112,13 @@ func (smsp *SmsProcess) SendPrivateMes(mes *message.Message) {
 	smsp.SendMesToSpecifiedUser(data, uspc.Conn)
 }
 
-// SendNormalOfflineMes 下线：第二步 针对用户正常退出的情况，服务端通知其它在线用户该用户下线
-func (smsp *SmsProcess) SendNormalOfflineMes(mes *message.Message) {
+// SendNormalLogoutMes 下线：第二步 针对用户正常退出的情况，服务端通知其它在线用户该用户下线
+func (smsp *SmsProcess) SendNormalLogoutMes(mes *message.Message) {
 	//因为用户正常退出，因此服务端可以收到客户端发送的mes
-	var normalOfflineMes message.OfflineMes
-	err := json.Unmarshal([]byte(mes.Data), &normalOfflineMes)
+	var normalLogoutMes message.LogoutMes
+	err := json.Unmarshal([]byte(mes.Data), &normalLogoutMes)
 	if err != nil {
-		fmt.Println("SendNormalOfflineMes json.Unmarshal err=", err)
+		fmt.Println("SendNormalLogoutMes json.Unmarshal err=", err)
 		return
 	}
 
@@ -110,23 +126,23 @@ func (smsp *SmsProcess) SendNormalOfflineMes(mes *message.Message) {
 	//下一步要对服务端维护的两个map进行crud
 
 	//1.把这个用户从onlineUser中删除，调用userMgr的delete函数
-	GetUserMgr().DeleteOnlineUser(normalOfflineMes.UserID)
+	GetUserMgr().DeleteOnlineUser(normalLogoutMes.UserID)
 
 	//2.改变这个用户的状态
-	GetUserMgr().userStatus.Store(normalOfflineMes.UserID, message.UserOffline)
+	GetUserMgr().userStatus.Store(normalLogoutMes.UserID, message.UserOffline)
 
 	//服务端自身已经处理完，接下来服务端要发信息，告诉其它在线用户这个用户下线了
 	var resMes message.Message
-	resMes.Type = message.OfflineResMesType
+	resMes.Type = message.LogoutResMesType
 
-	var offlineResMes message.OfflineResMes
-	offlineResMes.UserID = normalOfflineMes.UserID
-	offlineResMes.UserName = normalOfflineMes.UserName
-	offlineResMes.Time = normalOfflineMes.Time
-	offlineResMes.Reason = normalOfflineMes.Reason
-	data, err := json.Marshal(offlineResMes)
+	var logoutResMes message.LogoutResMes
+	logoutResMes.UserID = normalLogoutMes.UserID
+	logoutResMes.UserName = normalLogoutMes.UserName
+	logoutResMes.Time = normalLogoutMes.Time
+	logoutResMes.Reason = normalLogoutMes.Reason
+	data, err := json.Marshal(logoutResMes)
 	if err != nil {
-		fmt.Println("SendNormalOfflineMes json.Marshal err=", err)
+		fmt.Println("SendNormalLogoutMes json.Marshal err=", err)
 		return
 	}
 
@@ -144,7 +160,7 @@ func (smsp *SmsProcess) SendNormalOfflineMes(mes *message.Message) {
 		if !ok {
 			return true //跳过无效key
 		}
-		if id == normalOfflineMes.UserID {
+		if id == normalLogoutMes.UserID {
 			return true //继续遍历，过滤掉自己
 			// 其实按道理来说不会出现这种情况，因为前面已经delete该下线用户了
 		}
@@ -248,4 +264,32 @@ func (smsp *SmsProcess) SendDeleteAccountMes(mes *message.Message) {
 		}
 		return true
 	})
+}
+
+// SendErrorToSender 如果私聊信息的接收者不存在，服务端要告诉客户端
+func (smsp *SmsProcess) SendErrorToSender(SenderID int, errorMes map[string]interface{}) {
+	value, exist := GetUserMgr().onlineUsers.Load(SenderID)
+	if !exist {
+		return //发送者也不在线，无法通知
+	}
+
+	data, err := json.Marshal(errorMes)
+	if err != nil {
+		fmt.Println("SendErrorToSender json.Marshal err=", err)
+		return
+	}
+
+	mes := message.Message{
+		Type: "ErrorRes",
+		Data: string(data),
+	}
+
+	FinalData, err := json.Marshal(mes)
+	if err != nil {
+		fmt.Println("SendErrorToSender json.Marshal err=", err)
+		return
+	}
+
+	uspc := value.(*UserProcess0)
+	smsp.SendMesToSpecifiedUser(FinalData, uspc.Conn)
 }

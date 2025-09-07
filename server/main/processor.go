@@ -39,7 +39,7 @@ func (prc *Processor) ServerProcessMes(mes *message.Message) (err error) {
 		//处理用户私聊
 		smsProcess := &process2.SmsProcess{}
 		smsProcess.SendPrivateMes(mes)
-	case message.OfflineMesType:
+	case message.LogoutMesType:
 		//处理用户下线
 		smsProcess := &process2.SmsProcess{}
 		smsProcess.SendNormalOfflineMes(mes)

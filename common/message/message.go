@@ -11,19 +11,21 @@ const (
 	SmsMesType              = "SmsMes"
 	SmsPrivateMesType       = "SmsPrivateMes"
 	SmsPrivateResMesType    = "SmsPrivateResMes"
-	OfflineMesType          = "OfflineMes"
-	OfflineResMesType       = "OfflineResMes"
+	LogoutMesType           = "LogoutMes"
+	LogoutResMesType        = "LogoutResMes"
 	OnlineMesType           = "OnlineMes"
 	OnlineResMesType        = "OnlineResMes"
 	DeleteAccountMesType    = "DeleteAccountMes"
 	DeleteAccountResMesType = "DeleteAccountResMes"
+	OfflineMesType          = "OfflineMes" //离线留言
+	OfflineResMesType       = "OfflineResMes"
+	ErrorResType            = "ErrorRes" //服务端返回错误信息
 )
 
 //定义几个用户状态的常量
 const (
 	UserOnline = iota
 	UserOffline
-	UserBusyStatus
 )
 
 //定义两个退出情况
@@ -87,16 +89,16 @@ type PrivateResMes struct {
 	Sender  User   `json:"sender"`
 }
 
-// OfflineMes 下线：客户端传给服务端的信息
-type OfflineMes struct {
+// LogoutMes 下线：客户端传给服务端的信息
+type LogoutMes struct {
 	UserID   int    `json:"userID"`
 	UserName string `json:"userName"`
 	Reason   string `json:"reason"`
 	Time     int64  `json:"time"`
 }
 
-// OfflineResMes 下线：服务端传给在线用户的消息
-type OfflineResMes struct {
+// LogoutResMes 下线：服务端传给在线用户的消息
+type LogoutResMes struct {
 	UserID   int    `json:"userID"`
 	UserName string `json:"userName"`
 	Reason   string `json:"reason"`
@@ -125,4 +127,21 @@ type DeleteAccountMes struct {
 type DeleteAccountResMes struct {
 	User User  `json:"user"`
 	Time int64 `json:"time"`
+}
+
+// OfflineMes 离线留言：客户端传给服务端的消息
+type OfflineMes struct {
+	SenderID   int    `json:"senderID"`
+	SenderName string `json:"senderName"`
+	ReceiverID int    `json:"receiverID"`
+	Content    string `json:"content"`
+	Time       int64  `json:"time"`
+}
+
+// OfflineResMes 离线留言：服务端传回给客户端的消息
+type OfflineResMes struct {
+	SenderID   int    `json:"senderID"`
+	SenderName string `json:"senderName"`
+	Content    string `json:"content"`
+	Time       int64  `json:"time"`
 }

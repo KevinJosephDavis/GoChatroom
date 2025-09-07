@@ -59,7 +59,7 @@ func ShowMenu() bool {
 
 	case 5:
 		fmt.Println("您选择退出系统")
-		smsp.SendOfflineMes(CurUser.UserID, CurUser.UserName, time.Now().Unix())
+		smsp.SendLogoutMes(CurUser.UserID, CurUser.UserName, time.Now().Unix())
 		time.Sleep(100 * time.Millisecond) //确保消息发送过去
 		fmt.Println("再见！")
 		//退回到上一级菜单
@@ -110,7 +110,7 @@ func serverProcessMes(ctx context.Context, conn net.Conn) {
 			mes, err := tf.ReadPkg()
 			if err != nil {
 				if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
-					//超时，继续检查context
+					//超时，等100ms没有等到，继续检查context，回到过去
 					continue
 				}
 				if strings.Contains(err.Error(), "use of closed network connection") {
@@ -137,10 +137,12 @@ func processMessageType(mes message.Message) {
 		outputGroupMes(&mes)
 	case message.SmsPrivateResMesType:
 		outputPrivateMes(&mes)
-	case message.OfflineResMesType:
+	case message.LogoutResMesType:
 		outputOfflineMes(&mes)
 	case message.DeleteAccountResMesType:
 		outputDeleteAccountMes(&mes)
+	case message.ErrorResType:
+		outputErrorRes(&mes)
 	default:
 		fmt.Println("返回了一个未知消息类型")
 	}

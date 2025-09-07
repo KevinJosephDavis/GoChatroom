@@ -68,7 +68,7 @@ func (smsp *SmsProcess) SendPrivateMes(content string, receiverID int) (err erro
 
 	data, err := json.Marshal(smsPrivateMes)
 	if err != nil {
-		fmt.Println("SendGroupMes json.Marshal err=", err)
+		fmt.Println("SendPrivateMes json.Marshal err=", err)
 		return
 	}
 
@@ -76,7 +76,7 @@ func (smsp *SmsProcess) SendPrivateMes(content string, receiverID int) (err erro
 
 	data, err = json.Marshal(mes)
 	if err != nil {
-		fmt.Println("SendGroupMes json.Marshal err=", err)
+		fmt.Println("SendPrivateMes json.Marshal err=", err)
 		return
 	}
 
@@ -86,30 +86,30 @@ func (smsp *SmsProcess) SendPrivateMes(content string, receiverID int) (err erro
 
 	err = tf.WritePkg(data)
 	if err != nil {
-		fmt.Println("SendGroupMes WritePkg err=", err)
+		fmt.Println("SendPrivateMes WritePkg err=", err)
 		return
 	}
 
 	return
 }
 
-// SendOfflineMes 下线：第一步 客户端向服务端发送下线信息（正常退出）
-func (smsp *SmsProcess) SendOfflineMes(userID int, userName string, Time int64) (err error) {
+// SendLogoutMes 下线：第一步 客户端向服务端发送下线信息（正常退出）
+func (smsp *SmsProcess) SendLogoutMes(userID int, userName string, Time int64) (err error) {
 	var mes message.Message
-	mes.Type = message.OfflineMesType
+	mes.Type = message.LogoutMesType
 
-	var offlineMes message.OfflineMes
-	offlineMes.UserID = userID
-	offlineMes.UserName = userName
-	offlineMes.Time = Time
-	offlineMes.Reason = message.Normal //能够发送offlineMes，属于正常退出
+	var logoutMes message.LogoutMes
+	logoutMes.UserID = userID
+	logoutMes.UserName = userName
+	logoutMes.Time = Time
+	logoutMes.Reason = message.Normal //能够发送LogoutMes，属于正常退出
 	//正常退出的几种情况：1.用户选择5 退出系统 2.用户输入exit 或 ctrl+C
 	//后续要在上层写 收集用户键入信息的函数
-	//调用完这个SendOfflineMes函数后，要关闭连接
+	//调用完这个SendLogoutMes函数后，要关闭连接
 
-	data, err := json.Marshal(offlineMes)
+	data, err := json.Marshal(logoutMes)
 	if err != nil {
-		fmt.Println("SendOfflineMes json.Marshal err=", err)
+		fmt.Println("SendLogoutMes json.Marshal err=", err)
 		return
 	}
 
@@ -117,7 +117,7 @@ func (smsp *SmsProcess) SendOfflineMes(userID int, userName string, Time int64) 
 
 	data, err = json.Marshal(mes)
 	if err != nil {
-		fmt.Println("SendOfflineMes json.Marshal err=", err)
+		fmt.Println("SendLogoutMes json.Marshal err=", err)
 		return
 	}
 

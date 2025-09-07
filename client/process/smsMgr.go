@@ -39,7 +39,7 @@ func outputPrivateMes(mes *message.Message) {
 // outputOfflineMes 下线：第三步 客户端接收服务端返回的信息，呈现下线的用户ID、昵称和下线时间
 func outputOfflineMes(mes *message.Message) {
 	//注意，不管用户是正常下线，还是非正常下线，第三步都调用这个函数（暂时这么考虑）
-	var offlineResMes message.OfflineResMes
+	var offlineResMes message.LogoutResMes
 	err := json.Unmarshal([]byte(mes.Data), &offlineResMes)
 	if err != nil {
 		fmt.Println("outputOfflineMes json.Unmarshal err=", err)
@@ -126,4 +126,29 @@ func getTime(timeStamp int64) string {
 
 	//格式化
 	return t.Format("2006-01-02 15:04:05") //Go的特殊格式
+}
+
+// outputErrorRes 打印离线留言返回的错误信息
+func outputErrorRes(mes *message.Message) {
+	var errorRes map[string]interface{}
+	err := json.Unmarshal([]byte(mes.Data), &errorRes)
+	if err != nil {
+		fmt.Println("outputErrorRes json.Unmarshal err=", err)
+		return
+	}
+
+	if code, ok := errorRes["code"].(string); ok {
+		if message, ok := errorRes["message"].(string); ok {
+			switch code {
+			case "UserNotExist":
+				fmt.Printf("错误：%s\n", message)
+			default:
+				fmt.Printf("系统错误：%s （错误码：%s）\n", message, code)
+			}
+		} else {
+			fmt.Println("错误消息格式不正确")
+		}
+	} else {
+		fmt.Println("错误码格式不正确")
+	}
 }

@@ -15,6 +15,7 @@ var (
 type UserMgr struct {
 	onlineUsers sync.Map //map[int]*UserProcess0
 	userStatus  sync.Map //维护用户状态。key为ID，value为几个用户状态。事实上维护了所有用户
+	offlineMes  sync.Map //每个用户的离线消息队列
 }
 
 // InitUserMgr 完成对userMgr的初始化工作
@@ -22,6 +23,7 @@ func InitUserMgr() {
 	userMgr = &UserMgr{
 		onlineUsers: sync.Map{},
 		userStatus:  sync.Map{},
+		offlineMes:  sync.Map{},
 	}
 	fmt.Println("userMgr初始化完成")
 }
@@ -78,3 +80,21 @@ func (usmng *UserMgr) DeleteExistUser(userID int) {
 }
 
 //需不需要写一个AddNewUser？看一下注册后登录的逻辑
+
+// SetUserStatus 设置用户状态（实际上就是AddNewUser）
+func (usmng *UserMgr) SetUserStatus(userID int, status int) {
+	usmng.userStatus.Store(userID, status)
+}
+
+// GetUserStatus 获取用户状态
+func (usmng *UserMgr) GetUserStatus(userID int) (int, error) {
+	value, exist := usmng.userStatus.Load(userID)
+	if !exist {
+		return -1, fmt.Errorf("用户不存在")
+	}
+	status, ok := value.(int)
+	if !ok {
+		return -2, fmt.Errorf("GetUserStatus 类型断言错误")
+	}
+	return status, nil
+}
