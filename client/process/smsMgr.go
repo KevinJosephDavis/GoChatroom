@@ -82,12 +82,8 @@ func outputDeleteAccountMes(mes *message.Message) {
 			}
 		}
 
-		//清理资源在协程中异步执行，避免阻塞消息处理
+		//清理资源
 		go func() {
-			//稍微延迟，确保主循环先处理退出信号
-			time.Sleep(50 * time.Millisecond)
-
-			//清理资源
 			if cancelFunc != nil {
 				cancelFunc() //通知消息协程退出
 			}
