@@ -3,6 +3,8 @@ package process2
 import (
 	"fmt"
 	"sync"
+
+	"github.com/kevinjosephdavis/chatroom/common/message"
 )
 
 //因为UserMgr实例在服务器端有且仅有一个
@@ -97,4 +99,42 @@ func (usmng *UserMgr) GetUserStatus(userID int) (int, error) {
 		return -2, fmt.Errorf("GetUserStatus 类型断言错误")
 	}
 	return status, nil
+}
+
+// StoreOfflineMes 存储离线留言
+func (usmng *UserMgr) StoreOfflineMes(offlineMes *message.OfflineMes) {
+	var mes []*message.OfflineMes
+	existingMes, exist := usmng.offlineMes.Load(offlineMes.ReceiverID) //看这个接收者是否已经存在离线留言
+	if exist {
+		//类型断言。因为Load出来的value是interface{}类型，不能直接append
+		if existingSlice, ok := existingMes.([]*message.OfflineMes); ok {
+			mes = existingSlice
+		} else {
+			fmt.Println("StoreOfflineMes 类型断言错误")
+			mes = []*message.OfflineMes{}
+		}
+	}
+	mes = append(mes, offlineMes)
+	usmng.offlineMes.Store(offlineMes.ReceiverID, mes)
+}
+
+// GetOfflineMes 根据用户ID获取离线留言
+func (usmng *UserMgr) GetOfflineMes(userID int) []*message.OfflineMes {
+	value, exist := usmng.offlineMes.Load(userID)
+	if !exist {
+		//如果用户没有收到离线留言
+		return []*message.OfflineMes{}
+	}
+	//如果有，就要类型断言
+	if mes, ok := value.([]*message.OfflineMes); ok {
+		return mes
+	}
+
+	fmt.Println("GetOfflineMes 类型断言错误")
+	return []*message.OfflineMes{}
+}
+
+// ClearOfflineMes 用户读取了离线留言后，要清空离线留言列表
+func (usmng *UserMgr) ClearOfflineMes(userID int) {
+	usmng.offlineMes.Store(userID, []*message.OfflineMes{}) //不清空键，只清空值
 }

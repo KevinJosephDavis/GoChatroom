@@ -19,7 +19,7 @@ const (
 	DeleteAccountResMesType = "DeleteAccountResMes"
 	OfflineMesType          = "OfflineMes" //离线留言
 	OfflineResMesType       = "OfflineResMes"
-	ErrorResType            = "ErrorRes" //服务端返回错误信息
+	ErrorResType            = "ErrorRes" //服务端告诉离线留言信息的发送者，对象不存在 或者 已存储信息（不一定是错误）
 )
 
 //定义几个用户状态的常量

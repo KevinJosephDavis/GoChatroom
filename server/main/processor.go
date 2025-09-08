@@ -42,7 +42,7 @@ func (prc *Processor) ServerProcessMes(mes *message.Message) (err error) {
 	case message.LogoutMesType:
 		//处理用户下线
 		smsProcess := &process2.SmsProcess{}
-		smsProcess.SendNormalOfflineMes(mes)
+		smsProcess.SendNormalLogoutMes(mes)
 	case message.DeleteAccountMesType:
 		//处理用户注销
 		smsProcess := &process2.SmsProcess{}

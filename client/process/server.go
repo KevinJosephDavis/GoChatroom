@@ -138,11 +138,13 @@ func processMessageType(mes message.Message) {
 	case message.SmsPrivateResMesType:
 		outputPrivateMes(&mes)
 	case message.LogoutResMesType:
-		outputOfflineMes(&mes)
+		outputLogoutMes(&mes)
 	case message.DeleteAccountResMesType:
 		outputDeleteAccountMes(&mes)
 	case message.ErrorResType:
 		outputErrorRes(&mes)
+	case message.OfflineResMesType:
+		outputOfflineResMes(&mes)
 	default:
 		fmt.Println("返回了一个未知消息类型")
 	}

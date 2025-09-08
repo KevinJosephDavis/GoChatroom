@@ -76,6 +76,7 @@ func (smsp *SmsProcess) SendPrivateMes(mes *message.Message) {
 		return
 	}
 
+	// 离线留言：第一步：发送对象不存在的错误处理
 	status, err := GetUserMgr().GetUserStatus(smsPrivateMes.ReceiverID)
 	if err != nil {
 		if status == -1 {
@@ -102,8 +103,30 @@ func (smsp *SmsProcess) SendPrivateMes(mes *message.Message) {
 	// 直接查找目标用户，不需要遍历，从O(n)优化为O(1)
 	value, exist := GetUserMgr().onlineUsers.Load(smsPrivateMes.ReceiverID)
 	if !exist {
-		fmt.Println("用户不在线或不存在，无法发送私聊消息")
-		// 调用离线留言功能
+		fmt.Println("用户不在线") //由于在遍历onlineUsers之前，已经判断过用户是否存在。所以这里只可能是用户不在线
+		// 离线留言：第二步：默认调用离线留言功能
+
+		//1.先创建一个离线留言消息
+		offlineMes := message.OfflineMes{
+			SenderID:   smsPrivateMes.Sender.UserID,
+			SenderName: smsPrivateMes.Sender.UserName,
+			ReceiverID: smsPrivateMes.ReceiverID,
+			Content:    smsPrivateMes.Content,
+			Time:       time.Now().Unix(),
+		}
+
+		//2.将离线留言消息存储到服务端中。用户登录后自动发送查看离线留言信息的请求，这时候服务端再返回离线留言信息
+		GetUserMgr().StoreOfflineMes(&offlineMes)
+		fmt.Printf("用户(ID:%d) 的离线消息已存储", smsPrivateMes.ReceiverID)
+
+		//3.存储离线消息后，要告诉发送人离线留言成功
+		SucStoreOfflineMes := map[string]interface{}{
+			"type":    message.ErrorResType,
+			"code":    "OfflineMesStored",
+			"message": "消息已存储，将在对方上线时送达，离线留言成功",
+		}
+		smsp.SendErrorToSender(smsPrivateMes.Sender.UserID, SucStoreOfflineMes)
+
 		return
 	}
 	uspc := value.(*UserProcess0)
@@ -266,7 +289,7 @@ func (smsp *SmsProcess) SendDeleteAccountMes(mes *message.Message) {
 	})
 }
 
-// SendErrorToSender 如果私聊信息的接收者不存在，服务端要告诉客户端
+// SendErrorToSender 如果私聊信息的接收者不存在，或者离线留言成功了，服务端要告诉客户端
 func (smsp *SmsProcess) SendErrorToSender(SenderID int, errorMes map[string]interface{}) {
 	value, exist := GetUserMgr().onlineUsers.Load(SenderID)
 	if !exist {

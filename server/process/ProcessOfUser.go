@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"time"
 
 	"github.com/kevinjosephdavis/chatroom/common/message"
 	"github.com/kevinjosephdavis/chatroom/server/model"
@@ -165,6 +166,7 @@ func (uspc *UserProcess0) ServerProcessLogin(mes *message.Message) (err error) {
 			uspc.UserID = loginMes.UserID
 			uspc.UserName = user.UserName
 			GetUserMgr().AddOnlineUser(uspc)
+			GetUserMgr().SetUserStatus(uspc.UserID, message.UserOnline)
 			uspc.NotifyOtherOnlineUserOnline(uspc.UserID, uspc.UserName) //一登录成功，就告诉其它用户自己上线了
 			//将当前在线用户的ID放入到loginResMes.UserIDs
 			GetUserMgr().onlineUsers.Range(func(key, value interface{}) bool {
@@ -181,6 +183,49 @@ func (uspc *UserProcess0) ServerProcessLogin(mes *message.Message) (err error) {
 				return true
 			})
 			fmt.Println(user, "登录成功")
+
+			go func() {
+				//用户登录成功后，自动查询离线留言列表
+				time.Sleep(300 * time.Millisecond) //确保客户端正确显示了菜单
+				offlineMes := GetUserMgr().GetOfflineMes(uspc.UserID)
+				if len(offlineMes) > 0 {
+					//如果有离线留言
+					for _, mes := range offlineMes {
+						offlineResMes := message.OfflineResMes{
+							SenderID:   mes.SenderID,
+							SenderName: mes.SenderName,
+							Content:    mes.Content,
+							Time:       mes.Time,
+						}
+
+						//序列化，准备发送
+						resData, err := json.Marshal(offlineResMes)
+						if err != nil {
+							fmt.Println("离线留言消息序列化错误，err=", err)
+							continue
+						}
+
+						msg := message.Message{
+							Type: message.OfflineResMesType,
+							Data: string(resData),
+						}
+
+						FinalData, err := json.Marshal(msg)
+						if err != nil {
+							fmt.Println("离线留言消息序列化错误，err=", err)
+							continue
+						}
+						smsp := SmsProcess{}
+						smsp.SendMesToSpecifiedUser(FinalData, uspc.Conn)
+					}
+
+					//投递完毕，清空离线留言列表
+					fmt.Printf("用户%s (ID:%d) 的 %d条离线消息已发送", uspc.UserName, uspc.UserID,
+						len(offlineMes))
+
+					GetUserMgr().ClearOfflineMes(uspc.UserID)
+				}
+			}()
 		}
 
 	}

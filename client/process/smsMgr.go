@@ -36,21 +36,21 @@ func outputPrivateMes(mes *message.Message) {
 	fmt.Println()
 }
 
-// outputOfflineMes 下线：第三步 客户端接收服务端返回的信息，呈现下线的用户ID、昵称和下线时间
-func outputOfflineMes(mes *message.Message) {
+// outputLogoutMes 下线：第三步 客户端接收服务端返回的信息，呈现下线的用户ID、昵称和下线时间
+func outputLogoutMes(mes *message.Message) {
 	//注意，不管用户是正常下线，还是非正常下线，第三步都调用这个函数（暂时这么考虑）
-	var offlineResMes message.LogoutResMes
-	err := json.Unmarshal([]byte(mes.Data), &offlineResMes)
+	var logoutResMes message.LogoutResMes
+	err := json.Unmarshal([]byte(mes.Data), &logoutResMes)
 	if err != nil {
-		fmt.Println("outputOfflineMes json.Unmarshal err=", err)
+		fmt.Println("outputLogoutMes json.Unmarshal err=", err)
 		return
 	}
-	delete(onlineUsers, offlineResMes.UserID) //将该用户从客户端维护的在线用户map中删除
+	delete(onlineUsers, logoutResMes.UserID) //将该用户从客户端维护的在线用户map中删除
 	info := fmt.Sprintf("%s (ID:%d) 于 %s 下线，下线原因是：%s",
-		offlineResMes.UserName,
-		offlineResMes.UserID,
-		getTime(offlineResMes.Time),
-		getReason(offlineResMes.Reason))
+		logoutResMes.UserName,
+		logoutResMes.UserID,
+		getTime(logoutResMes.Time),
+		getReason(logoutResMes.Reason))
 	fmt.Println(info)
 	fmt.Println()
 }
@@ -141,7 +141,9 @@ func outputErrorRes(mes *message.Message) {
 		if message, ok := errorRes["message"].(string); ok {
 			switch code {
 			case "UserNotExist":
-				fmt.Printf("错误：%s\n", message)
+				fmt.Printf("%s\n", message)
+			case "OfflineMesStored":
+				fmt.Printf("%s\n", message)
 			default:
 				fmt.Printf("系统错误：%s （错误码：%s）\n", message, code)
 			}
@@ -151,4 +153,19 @@ func outputErrorRes(mes *message.Message) {
 	} else {
 		fmt.Println("错误码格式不正确")
 	}
+}
+
+// outputOfflineMes 打印离线留言消息
+func outputOfflineResMes(mes *message.Message) {
+	var offlineResMes message.OfflineResMes
+	err := json.Unmarshal([]byte(mes.Data), &offlineResMes)
+	if err != nil {
+		fmt.Println("outputOfflineResMes json.Unmarshal err=", err)
+		return
+	}
+	mesTime := time.Unix(offlineResMes.Time, 0)
+	info := fmt.Sprintf("用户%s (ID:%d) 于%s给您的离线留言：%s", offlineResMes.SenderName, offlineResMes.SenderID,
+		mesTime.Format("2006-01-02 15:04:05"), offlineResMes.Content)
+	fmt.Println(info)
+	fmt.Println()
 }
