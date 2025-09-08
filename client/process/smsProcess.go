@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/kevinjosephdavis/chatroom/client/model"
 	"github.com/kevinjosephdavis/chatroom/common/message"
 	"github.com/kevinjosephdavis/chatroom/server/utils"
 )
@@ -13,15 +14,16 @@ type SmsProcess struct {
 
 // SendGroupMes 广播：第一步 发送者发送广播内容
 func (smsp *SmsProcess) SendGroupMes(content string) (err error) {
+	curUser := model.GetCurUser()
 	var mes message.Message
 	mes.Type = message.SmsMesType
 
 	groupMes := &message.GroupMes{
 		Content: content,
 		Sender: message.User{
-			UserID:     CurUser.UserID,
-			UserStatus: CurUser.UserStatus,
-			UserName:   CurUser.UserName,
+			UserID:     curUser.UserID,
+			UserStatus: curUser.UserStatus,
+			UserName:   curUser.UserName,
 		},
 	}
 	data, err := json.Marshal(groupMes)
@@ -39,7 +41,7 @@ func (smsp *SmsProcess) SendGroupMes(content string) (err error) {
 	}
 
 	tf := &utils.Transfer{
-		Conn: CurUser.Conn,
+		Conn: curUser.Conn,
 	}
 
 	err = tf.WritePkg(data)
@@ -53,15 +55,16 @@ func (smsp *SmsProcess) SendGroupMes(content string) (err error) {
 
 // SendPrivateMes 私聊：第一步 发送者发送私聊消息
 func (smsp *SmsProcess) SendPrivateMes(content string, receiverID int) (err error) {
+	curUser := model.GetCurUser()
 	var mes message.Message
 	mes.Type = message.SmsPrivateMesType
 
 	smsPrivateMes := &message.PrivateMes{
 		Content: content,
 		Sender: message.User{
-			UserID:     CurUser.UserID,
-			UserStatus: CurUser.UserStatus,
-			UserName:   CurUser.UserName,
+			UserID:     model.GetCurUser().UserID,
+			UserStatus: model.GetCurUser().UserStatus,
+			UserName:   model.GetCurUser().UserName,
 		},
 		ReceiverID: receiverID,
 	}
@@ -81,7 +84,7 @@ func (smsp *SmsProcess) SendPrivateMes(content string, receiverID int) (err erro
 	}
 
 	tf := &utils.Transfer{
-		Conn: CurUser.Conn,
+		Conn: curUser.Conn,
 	}
 
 	err = tf.WritePkg(data)
@@ -95,6 +98,7 @@ func (smsp *SmsProcess) SendPrivateMes(content string, receiverID int) (err erro
 
 // SendLogoutMes 下线：第一步 客户端向服务端发送下线信息（正常退出）
 func (smsp *SmsProcess) SendLogoutMes(userID int, userName string, Time int64) (err error) {
+	curUser := model.GetCurUser()
 	var mes message.Message
 	mes.Type = message.LogoutMesType
 
@@ -122,7 +126,7 @@ func (smsp *SmsProcess) SendLogoutMes(userID int, userName string, Time int64) (
 	}
 
 	tf := &utils.Transfer{
-		Conn: CurUser.Conn,
+		Conn: curUser.Conn,
 	}
 	err = tf.WritePkg(data)
 	return
@@ -130,6 +134,7 @@ func (smsp *SmsProcess) SendLogoutMes(userID int, userName string, Time int64) (
 
 // SendDeleteAccountMes 注销：第一步 客户端向服务端发送下线信息
 func (smsp *SmsProcess) SendDeleteAccountMes(userID int, userName string, Time int64) (err error) {
+	curUser := model.GetCurUser()
 	var mes message.Message
 	mes.Type = message.DeleteAccountMesType
 
@@ -153,7 +158,7 @@ func (smsp *SmsProcess) SendDeleteAccountMes(userID int, userName string, Time i
 	}
 
 	tf := &utils.Transfer{
-		Conn: CurUser.Conn,
+		Conn: curUser.Conn,
 	}
 	err = tf.WritePkg(data)
 	return

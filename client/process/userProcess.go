@@ -9,6 +9,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/kevinjosephdavis/chatroom/client/model"
 	"github.com/kevinjosephdavis/chatroom/common/message"
 	"github.com/kevinjosephdavis/chatroom/server/utils"
 )
@@ -98,12 +99,13 @@ func (uspc *UserProcess) Login(userID int, userPassword string) (err error) {
 	if loginResMes.Code == 200 {
 		//fmt.Println("登录成功")
 		//初始化CurUser
-		CurUser.Conn = conn
-		CurUser.UserID = loginResMes.UserID
-		CurUser.UserStatus = message.UserOnline
-		CurUser.UserName = loginResMes.UserName
+		model.SetCurUser(conn, message.User{
+			UserID:     loginResMes.UserID,
+			UserStatus: message.UserOnline,
+			UserName:   loginResMes.UserName,
+		})
 
-		fmt.Printf("用户%s (ID:%d) 登录成功!", CurUser.UserName, CurUser.UserID)
+		fmt.Printf("用户%s (ID:%d) 登录成功!", loginResMes.UserName, loginResMes.UserID)
 		fmt.Println()
 		fmt.Println("当前在线用户如下：")
 		for i, v := range loginResMes.UserIDs {
@@ -126,7 +128,8 @@ func (uspc *UserProcess) Login(userID int, userPassword string) (err error) {
 		go serverProcessMes(ctx, conn)
 
 		for {
-			if CurUser.Conn == nil {
+			curUser := model.GetCurUser()
+			if curUser == nil || curUser.Conn == nil {
 				fmt.Println("连接已关闭，返回主菜单")
 				return
 			}
@@ -141,8 +144,8 @@ func (uspc *UserProcess) Login(userID int, userPassword string) (err error) {
 				if cancelFunc != nil {
 					cancelFunc()
 				}
-				if CurUser.Conn != nil {
-					CurUser.Conn.Close()
+				if curUser.Conn != nil {
+					curUser.Conn.Close()
 				}
 				return
 			default:
@@ -153,8 +156,8 @@ func (uspc *UserProcess) Login(userID int, userPassword string) (err error) {
 					if cancelFunc != nil {
 						cancelFunc()
 					}
-					if CurUser.Conn != nil {
-						CurUser.Conn.Close()
+					if curUser.Conn != nil {
+						curUser.Conn.Close()
 					}
 					return
 				}

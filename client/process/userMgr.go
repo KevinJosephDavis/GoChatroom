@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	CurUser           model.CurUser
+	//CurUser           model.CurUser
 	onlineUsers       = make(map[int]*message.User)
 	cancelFunc        context.CancelFunc
 	exitChan          = make(chan bool, 1)
@@ -20,7 +20,7 @@ var (
 func outputOnlineUser() {
 	fmt.Println("当前在线用户：")
 	for _, user := range onlineUsers {
-		if user.UserID == CurUser.UserID {
+		if user.UserID == model.GetCurUser().UserID {
 			continue
 		}
 		fmt.Printf("%s (ID:%d):", user.UserName, user.UserID)

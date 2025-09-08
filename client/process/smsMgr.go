@@ -58,6 +58,7 @@ func outputLogoutMes(mes *message.Message) {
 // outputDeleteAccountMes 注销：第三步 客户端接收服务端返回的信息，呈现注销的用户ID、昵称和下线时间
 func outputDeleteAccountMes(mes *message.Message) {
 	var DeleteAccountResMes message.DeleteAccountResMes
+	curUser := model.GetCurUser()
 	err := json.Unmarshal([]byte(mes.Data), &DeleteAccountResMes)
 	if err != nil {
 		fmt.Println("outputOfflineMes json.Unmarshal err=", err)
@@ -65,7 +66,7 @@ func outputDeleteAccountMes(mes *message.Message) {
 	}
 
 	//判断是否是自己的注销操作
-	if DeleteAccountResMes.User.UserID == CurUser.UserID {
+	if curUser.Conn != nil && DeleteAccountResMes.User.UserID == curUser.UserID {
 		fmt.Printf("您的账号 %s (ID:%d) 已成功注销\n",
 			DeleteAccountResMes.User.UserName,
 			DeleteAccountResMes.User.UserID)
@@ -87,12 +88,12 @@ func outputDeleteAccountMes(mes *message.Message) {
 			if cancelFunc != nil {
 				cancelFunc() //通知消息协程退出
 			}
-			if CurUser.Conn != nil {
-				CurUser.Conn.Close() //关闭连接
+			if curUser.Conn != nil {
+				curUser.Conn.Close() //关闭连接
 			}
 			//由于是本用户注销，因此要清理其客户端状态
 			onlineUsers = make(map[int]*message.User)
-			CurUser = model.CurUser{}
+			model.ClearCurUser()
 			fmt.Println("资源清理完成")
 		}()
 	} else {

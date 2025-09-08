@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kevinjosephdavis/chatroom/client/model"
 	"github.com/kevinjosephdavis/chatroom/common/message"
 	"github.com/kevinjosephdavis/chatroom/server/utils"
 )
@@ -49,7 +50,7 @@ func ShowMenu() bool {
 		var receiverID int
 		fmt.Println("请输入您想要发送的对象ID：")
 		fmt.Scanf("%d\n", &receiverID)
-		if receiverID == CurUser.UserID {
+		if receiverID == model.GetCurUser().UserID {
 			fmt.Println("无法自己向自己发送消息")
 			break
 		}
@@ -59,7 +60,7 @@ func ShowMenu() bool {
 
 	case 5:
 		fmt.Println("您选择退出系统")
-		smsp.SendLogoutMes(CurUser.UserID, CurUser.UserName, time.Now().Unix())
+		smsp.SendLogoutMes(model.GetCurUser().UserID, model.GetCurUser().UserName, time.Now().Unix())
 		time.Sleep(100 * time.Millisecond) //确保消息发送过去
 		fmt.Println("再见！")
 		//退回到上一级菜单
@@ -77,7 +78,7 @@ func ShowMenu() bool {
 
 		//发送注销请求，等待服务器回调outputDeleteAccountMes
 		currentTime := time.Now().Unix()
-		err := smsp.SendDeleteAccountMes(CurUser.UserID, CurUser.UserName, currentTime)
+		err := smsp.SendDeleteAccountMes(model.GetCurUser().UserID, model.GetCurUser().UserName, currentTime)
 		if err != nil {
 			fmt.Println("发送注销请求失败，err=", err)
 			return false
