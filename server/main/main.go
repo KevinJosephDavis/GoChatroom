@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/kevinjosephdavis/chatroom/server/model"
+	process2 "github.com/kevinjosephdavis/chatroom/server/process"
 )
 
 // process 处理和客户端的通讯
@@ -37,7 +38,6 @@ func init() {
 	initUserDao()
 }
 func main() {
-
 	//提示信息
 	fmt.Println("服务器在8889端口监听....")
 	listen, err := net.Listen("tcp", "0.0.0.0:8889")
@@ -47,6 +47,9 @@ func main() {
 		return
 	}
 	defer listen.Close()
+
+	//心跳检测
+	process2.GetUserMgr().StartHeartBeatCheck()
 
 	//如果监听成功，等待客户端来连接服务器
 	for {
@@ -59,4 +62,5 @@ func main() {
 		//如果连接成功，则启动一个协程和客户端保持通讯
 		go process(conn)
 	}
+
 }

@@ -69,14 +69,14 @@ func (tf *Transfer) WritePkg(data []byte) (err error) {
 	//现在发送消息长度
 	n, err := tf.Conn.Write(tf.Buf[:4])
 	if n != 4 || err != nil {
-		fmt.Println("conn.Write(bytes) err=", err)
+		//fmt.Println("conn.Write(bytes) err=", err)
 		return
 	}
 
 	//发送data本身
 	n, err = tf.Conn.Write(data)
 	if n != 4 || err != nil {
-		fmt.Println("conn.Write(bytes) err=", err)
+		//fmt.Println("conn.Write(bytes) err=", err)
 		return
 	}
 	return

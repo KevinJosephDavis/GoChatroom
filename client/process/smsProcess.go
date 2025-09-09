@@ -106,10 +106,6 @@ func (smsp *SmsProcess) SendLogoutMes(userID int, userName string, Time int64) (
 	logoutMes.UserID = userID
 	logoutMes.UserName = userName
 	logoutMes.Time = Time
-	logoutMes.Reason = message.Normal //能够发送LogoutMes，属于正常退出
-	//正常退出的几种情况：1.用户选择5 退出系统 2.用户输入exit 或 ctrl+C
-	//后续要在上层写 收集用户键入信息的函数
-	//调用完这个SendLogoutMes函数后，要关闭连接
 
 	data, err := json.Marshal(logoutMes)
 	if err != nil {

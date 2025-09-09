@@ -105,6 +105,8 @@ func (uspc *UserProcess) Login(userID int, userPassword string) (err error) {
 			UserName:   loginResMes.UserName,
 		})
 
+		StartHeartBeatSending() //登录成功后就立即进行心跳检测
+
 		fmt.Printf("用户%s (ID:%d) 登录成功!", loginResMes.UserName, loginResMes.UserID)
 		fmt.Println()
 		fmt.Println("当前在线用户如下：")

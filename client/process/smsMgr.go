@@ -38,7 +38,7 @@ func outputPrivateMes(mes *message.Message) {
 
 // outputLogoutMes 下线：第三步 客户端接收服务端返回的信息，呈现下线的用户ID、昵称和下线时间
 func outputLogoutMes(mes *message.Message) {
-	//注意，不管用户是正常下线，还是非正常下线，第三步都调用这个函数（暂时这么考虑）
+	//注意，不管用户是正常下线，还是非正常下线，第三步都调用这个函数
 	var logoutResMes message.LogoutResMes
 	err := json.Unmarshal([]byte(mes.Data), &logoutResMes)
 	if err != nil {
@@ -46,11 +46,10 @@ func outputLogoutMes(mes *message.Message) {
 		return
 	}
 	delete(onlineUsers, logoutResMes.UserID) //将该用户从客户端维护的在线用户map中删除
-	info := fmt.Sprintf("%s (ID:%d) 于 %s 下线，下线原因是：%s",
+	info := fmt.Sprintf("%s (ID:%d) 于 %s 下线",
 		logoutResMes.UserName,
 		logoutResMes.UserID,
-		getTime(logoutResMes.Time),
-		getReason(logoutResMes.Reason))
+		getTime(logoutResMes.Time))
 	fmt.Println(info)
 	fmt.Println()
 }
@@ -106,18 +105,6 @@ func outputDeleteAccountMes(mes *message.Message) {
 		fmt.Println(info)
 	}
 	fmt.Println()
-}
-
-// getReason 下线：获取下线原因
-func getReason(Reason string) string {
-	switch Reason {
-	case message.Normal:
-		return "正常下线"
-	case message.Abnormal:
-		return "非正常下线"
-	default:
-		return "未知下线原因"
-	}
 }
 
 // getTime 下线/注销：获取下线/注销时间

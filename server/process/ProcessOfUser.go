@@ -14,15 +14,17 @@ import (
 
 type UserProcess0 struct {
 	//分析应有的字段
-	Conn     net.Conn
-	UserID   int
-	UserName string
+	Conn          net.Conn
+	UserID        int
+	UserName      string
+	LastHeartBeat time.Time //最后一次心跳的时间
+	IsOnline      bool
 }
 
 // NotifyOtherOnlineUserOnline 用户上线：第二步 服务端发送变化信息给其它在线用户
 func (uspc *UserProcess0) NotifyOtherOnlineUserOnline(userID int, userName string) {
 	//遍历onlineUsers，然后一个一个发送
-	GetUserMgr().onlineUsers.Range(func(key, value interface{}) bool {
+	GetUserMgr().OnlineUsers.Range(func(key, value interface{}) bool {
 		id, ok := key.(int)
 		if !ok {
 			return true
@@ -165,11 +167,13 @@ func (uspc *UserProcess0) ServerProcessLogin(mes *message.Message) (err error) {
 			//将登录成功的用户的userID赋值给uspc
 			uspc.UserID = loginMes.UserID
 			uspc.UserName = user.UserName
+			uspc.LastHeartBeat = time.Now()
+			uspc.IsOnline = true
 			GetUserMgr().AddOnlineUser(uspc)
 			GetUserMgr().SetUserStatus(uspc.UserID, message.UserOnline)
 			uspc.NotifyOtherOnlineUserOnline(uspc.UserID, uspc.UserName) //一登录成功，就告诉其它用户自己上线了
 			//将当前在线用户的ID放入到loginResMes.UserIDs
-			GetUserMgr().onlineUsers.Range(func(key, value interface{}) bool {
+			GetUserMgr().OnlineUsers.Range(func(key, value interface{}) bool {
 				id, ok := key.(int)
 				if !ok {
 					return true

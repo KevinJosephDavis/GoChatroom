@@ -2,9 +2,11 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
+	"time"
 
 	"github.com/kevinjosephdavis/chatroom/common/message"
 	process2 "github.com/kevinjosephdavis/chatroom/server/process"
@@ -47,6 +49,22 @@ func (prc *Processor) ServerProcessMes(mes *message.Message) (err error) {
 		//处理用户注销
 		smsProcess := &process2.SmsProcess{}
 		smsProcess.SendDeleteAccountMes(mes)
+	case message.HeartBeatType:
+		//收到心跳检测结果
+		var heartBeat struct {
+			UserID int `json:"userID"`
+		}
+		err := json.Unmarshal([]byte(mes.Data), &heartBeat)
+		if err != nil {
+			fmt.Println("case message.HeartBeatType json.Unmarshal err=", err)
+			break
+		}
+		//更新该用户最后的心跳时间
+		if value, exist := process2.GetUserMgr().OnlineUsers.Load(heartBeat.UserID); exist {
+			uspc := value.(*process2.UserProcess0)
+			uspc.LastHeartBeat = time.Now()
+			fmt.Printf("收到用户%d的心跳，更新时间：%v\n", heartBeat.UserID, uspc.LastHeartBeat)
+		}
 	default:
 		fmt.Println("消息类型不存在，无法处理...")
 	}

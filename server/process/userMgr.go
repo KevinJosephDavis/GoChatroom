@@ -3,6 +3,7 @@ package process2
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/kevinjosephdavis/chatroom/common/message"
 )
@@ -15,7 +16,7 @@ var (
 )
 
 type UserMgr struct {
-	onlineUsers sync.Map //map[int]*UserProcess0
+	OnlineUsers sync.Map //map[int]*UserProcess0
 	userStatus  sync.Map //维护用户状态。key为ID，value为几个用户状态。事实上维护了所有用户
 	offlineMes  sync.Map //每个用户的离线消息队列
 }
@@ -23,7 +24,7 @@ type UserMgr struct {
 // InitUserMgr 完成对userMgr的初始化工作
 func InitUserMgr() {
 	userMgr = &UserMgr{
-		onlineUsers: sync.Map{},
+		OnlineUsers: sync.Map{},
 		userStatus:  sync.Map{},
 		offlineMes:  sync.Map{},
 	}
@@ -40,19 +41,22 @@ func GetUserMgr() *UserMgr {
 
 // AddOnlineUser 添加上线用户
 func (usmng *UserMgr) AddOnlineUser(up *UserProcess0) {
-	usmng.onlineUsers.Store(up.UserID, up)
+	if up.LastHeartBeat.IsZero() {
+		up.LastHeartBeat = time.Now()
+	}
+	usmng.OnlineUsers.Store(up.UserID, up)
 }
 
 // DeleteOnlineUser 删除下线用户
 func (usmng *UserMgr) DeleteOnlineUser(userID int) {
-	usmng.onlineUsers.Delete(userID)
+	usmng.OnlineUsers.Delete(userID)
 }
 
 // GetAllOnlineUsers 返回所有当前在线的用户的控制器
 func (usmng *UserMgr) GetAllOnlineUsers() []*UserProcess0 {
 	var onlineUsers []*UserProcess0
 
-	usmng.onlineUsers.Range(func(key, value interface{}) bool {
+	usmng.OnlineUsers.Range(func(key, value interface{}) bool {
 		onlineUsers = append(onlineUsers, value.(*UserProcess0))
 		return true
 	})
@@ -62,7 +66,7 @@ func (usmng *UserMgr) GetAllOnlineUsers() []*UserProcess0 {
 
 // GetOnlineUserByID 根据ID返回对应的值
 func (usmng *UserMgr) GetOnlineUserByID(userID int) (up *UserProcess0, err error) {
-	value, exist := usmng.onlineUsers.Load(userID)
+	value, exist := usmng.OnlineUsers.Load(userID)
 	if !exist {
 		err = fmt.Errorf("用户%d 不在线或不存在", userID)
 		return
@@ -137,4 +141,40 @@ func (usmng *UserMgr) GetOfflineMes(userID int) []*message.OfflineMes {
 // ClearOfflineMes 用户读取了离线留言后，要清空离线留言列表
 func (usmng *UserMgr) ClearOfflineMes(userID int) {
 	usmng.offlineMes.Store(userID, []*message.OfflineMes{}) //不清空键，只清空值
+}
+
+// StartHeartBeatCheck 开始心跳检测
+func (usmng *UserMgr) StartHeartBeatCheck() {
+	go func() {
+		ticker := time.NewTicker(5 * time.Second) //5秒检查一次
+		defer ticker.Stop()
+
+		for range ticker.C {
+			usmng.CheckAllUserHeartBeat()
+		}
+
+	}()
+}
+
+// CheckAllUserHeartBeat UserManager检查所有用户的心跳
+func (usmng *UserMgr) CheckAllUserHeartBeat() {
+	usmng.OnlineUsers.Range(func(key, value interface{}) bool {
+		userID := key.(int)
+		uspc := value.(*UserProcess0)
+
+		//如果15秒（考虑到网络波动）内没有心跳，判定为非正常下线（网络断开、关闭终端...）
+		if time.Since(uspc.LastHeartBeat) > 15*time.Second {
+			fmt.Printf("用户%s (ID:%d)心跳超时，最后心跳时间为：%v，判定为非正常下线\n", uspc.UserName,
+				userID, uspc.LastHeartBeat.Format("2006-01-02 15:04:05"))
+
+			//将该用户从服务端维护的onlineUsers中删除，并更改其在userStatus中的状态
+			usmng.DeleteOnlineUser(userID)
+			usmng.userStatus.Store(userID, message.UserOffline)
+
+			//发送消息
+			smsp := &SmsProcess{}
+			smsp.SendAbnormalLogoutResMes(userID, uspc.UserName)
+		}
+		return true
+	})
 }

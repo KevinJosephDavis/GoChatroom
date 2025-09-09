@@ -31,7 +31,7 @@ func (smsp *SmsProcess) SendGroupMes(mes *message.Message) {
 		return
 	}
 	// 反序列化 mes.Data 主要是为了获取发送者的 UserID，避免给自己发消息
-	GetUserMgr().onlineUsers.Range(func(key, value interface{}) bool {
+	GetUserMgr().OnlineUsers.Range(func(key, value interface{}) bool {
 		id := key.(int)
 		up := value.(*UserProcess0)
 		if id == groupMes.Sender.UserID {
@@ -101,7 +101,7 @@ func (smsp *SmsProcess) SendPrivateMes(mes *message.Message) {
 	}
 
 	// 直接查找目标用户，不需要遍历，从O(n)优化为O(1)
-	value, exist := GetUserMgr().onlineUsers.Load(smsPrivateMes.ReceiverID)
+	value, exist := GetUserMgr().OnlineUsers.Load(smsPrivateMes.ReceiverID)
 	if !exist {
 		fmt.Println("用户不在线") //由于在遍历onlineUsers之前，已经判断过用户是否存在。所以这里只可能是用户不在线
 		// 离线留言：第二步：默认调用离线留言功能
@@ -135,55 +135,32 @@ func (smsp *SmsProcess) SendPrivateMes(mes *message.Message) {
 	smsp.SendMesToSpecifiedUser(data, uspc.Conn)
 }
 
-// SendNormalLogoutMes 下线：第二步 针对用户正常退出的情况，服务端通知其它在线用户该用户下线
-func (smsp *SmsProcess) SendNormalLogoutMes(mes *message.Message) {
-	//因为用户正常退出，因此服务端可以收到客户端发送的mes
-	var normalLogoutMes message.LogoutMes
-	err := json.Unmarshal([]byte(mes.Data), &normalLogoutMes)
-	if err != nil {
-		fmt.Println("SendNormalLogoutMes json.Unmarshal err=", err)
-		return
-	}
-
-	//反序列化后得到了下线用户的ID、昵称、下线时间
-	//下一步要对服务端维护的两个map进行crud
-
-	//1.把这个用户从onlineUser中删除，调用userMgr的delete函数
-	GetUserMgr().DeleteOnlineUser(normalLogoutMes.UserID)
-
-	//2.改变这个用户的状态
-	GetUserMgr().userStatus.Store(normalLogoutMes.UserID, message.UserOffline)
-
-	//服务端自身已经处理完，接下来服务端要发信息，告诉其它在线用户这个用户下线了
-	var resMes message.Message
-	resMes.Type = message.LogoutResMesType
-
-	var logoutResMes message.LogoutResMes
-	logoutResMes.UserID = normalLogoutMes.UserID
-	logoutResMes.UserName = normalLogoutMes.UserName
-	logoutResMes.Time = normalLogoutMes.Time
-	logoutResMes.Reason = normalLogoutMes.Reason
+// BroadcastLogoutNotification 下线：第二步 服务端通知其它在线用户该用户下线（正常下线与非正常下线的公共部分）
+func (smsp *SmsProcess) BroadcastLogoutNotification(logoutResMes message.LogoutResMes) {
 	data, err := json.Marshal(logoutResMes)
 	if err != nil {
-		fmt.Println("SendNormalLogoutMes json.Marshal err=", err)
+		fmt.Println("BroadcastLogoutNotification json.Marshal err=", err)
 		return
 	}
 
-	resMes.Data = string(data)
+	resMes := message.Message{
+		Type: message.LogoutResMesType,
+		Data: string(data),
+	}
 
 	FinalData, err := json.Marshal(resMes)
 	if err != nil {
-		fmt.Println("SendNormalOfflineMes json.Marshal err=", err)
+		fmt.Println("BroadcastLogoutNotification json.Marshal err=", err)
 		return
 	}
 
 	//通知所有其它在线用户
-	GetUserMgr().onlineUsers.Range(func(key, value interface{}) bool {
+	GetUserMgr().OnlineUsers.Range(func(key, value interface{}) bool {
 		id, ok := key.(int)
 		if !ok {
 			return true //跳过无效key
 		}
-		if id == normalLogoutMes.UserID {
+		if id == logoutResMes.UserID {
 			return true //继续遍历，过滤掉自己
 			// 其实按道理来说不会出现这种情况，因为前面已经delete该下线用户了
 		}
@@ -200,18 +177,59 @@ func (smsp *SmsProcess) SendNormalLogoutMes(mes *message.Message) {
 
 		err = tf.WritePkg(FinalData)
 		if err != nil {
-			fmt.Println("SendNormalOfflineMes json.Marshal err=", err)
+			fmt.Println("BroadcastLogoutNotification json.Marshal err=", err)
 		}
 		return true
 	})
 }
 
-// SendAbnormalOfflineMes 下线：第二步 针对用户非正常退出的情况，服务端向在线用户发送该用户下线这一消息
-func (smsp *SmsProcess) SendAbnormalOfflineMes(userID int, userName string) {
-	//由于用户非正常退出，服务器是无法接收到客户端发过来的下线信息的
-	//因此，在上层需要写一个心跳检测，每隔5秒检测用户是否与服务端保持连接
-	//如果用户没有保持连接又没有发送OfflineMes，就在这个if中调用这个函数
+// SendNormalLogoutMes 下线：第二步 正常下线（输入5或者键入ctrl+C）
+func (smsp *SmsProcess) SendNormalLogoutMes(mes *message.Message) {
+	//因为用户正常退出，因此服务端可以收到客户端发送的mes
+	var normalLogoutMes message.LogoutMes
+	err := json.Unmarshal([]byte(mes.Data), &normalLogoutMes)
+	if err != nil {
+		fmt.Println("SendNormalLogoutMes json.Unmarshal err=", err)
+		return
+	}
 
+	//检查该用户是否已经心跳超时
+	if value, exist := GetUserMgr().OnlineUsers.Load(normalLogoutMes.UserID); exist {
+		uspc := value.(*UserProcess0)
+		if time.Since(uspc.LastHeartBeat) > 10*time.Second {
+			//实际上是心跳超时，按异常下线处理
+			smsp.SendAbnormalLogoutResMes(normalLogoutMes.UserID, normalLogoutMes.UserName)
+			return
+		}
+	}
+
+	//反序列化后得到了下线用户的ID、昵称、下线时间
+	//下一步要对服务端维护的两个map进行crud
+
+	//1.把这个用户从onlineUser中删除，调用userMgr的delete函数
+	GetUserMgr().DeleteOnlineUser(normalLogoutMes.UserID)
+
+	//2.改变这个用户的状态
+	GetUserMgr().userStatus.Store(normalLogoutMes.UserID, message.UserOffline)
+
+	logoutResMes := message.LogoutResMes(normalLogoutMes) //由于两个struct字段一样，所以直接类型转换
+	smsp.BroadcastLogoutNotification(logoutResMes)
+}
+
+// SendAbnormalLogoutResMes 下线：第二步 非正常下线（直接关闭终端或网络波动...）
+func (smsp *SmsProcess) SendAbnormalLogoutResMes(userID int, userName string) {
+	//1.把这个用户从onlineUser中删除，调用userMgr的delete函数
+	GetUserMgr().DeleteOnlineUser(userID)
+
+	//2.改变这个用户的状态
+	GetUserMgr().userStatus.Store(userID, message.UserOffline)
+
+	logoutResMes := message.LogoutResMes{
+		UserID:   userID,
+		UserName: userName,
+		Time:     time.Now().Unix(),
+	}
+	smsp.BroadcastLogoutNotification(logoutResMes)
 }
 
 // SendDeleteAccountMes 注销：第二步 服务端将注销用户从两个map中delete，并向其它在线用户发送该用户注销这一消息
@@ -246,7 +264,7 @@ func (smsp *SmsProcess) SendDeleteAccountMes(mes *message.Message) {
 	}
 
 	//向注销用户自己发送通知（在其被删除之前）
-	if up, exists := GetUserMgr().onlineUsers.Load(DeleteAccountMes.User.UserID); exists {
+	if up, exists := GetUserMgr().OnlineUsers.Load(DeleteAccountMes.User.UserID); exists {
 		if uspc, ok := up.(*UserProcess0); ok && uspc.Conn != nil {
 			tf := &utils.Transfer{
 				Conn: uspc.Conn,
@@ -273,7 +291,7 @@ func (smsp *SmsProcess) SendDeleteAccountMes(mes *message.Message) {
 	}
 
 	//通知其它在线用户
-	GetUserMgr().onlineUsers.Range(func(key, value interface{}) bool {
+	GetUserMgr().OnlineUsers.Range(func(key, value interface{}) bool {
 		up, ok := value.(*UserProcess0)
 		if !ok || up == nil || up.Conn == nil {
 			return true
@@ -291,7 +309,7 @@ func (smsp *SmsProcess) SendDeleteAccountMes(mes *message.Message) {
 
 // SendErrorToSender 如果私聊信息的接收者不存在，或者离线留言成功了，服务端要告诉客户端
 func (smsp *SmsProcess) SendErrorToSender(SenderID int, errorMes map[string]interface{}) {
-	value, exist := GetUserMgr().onlineUsers.Load(SenderID)
+	value, exist := GetUserMgr().OnlineUsers.Load(SenderID)
 	if !exist {
 		return //发送者也不在线，无法通知
 	}

@@ -20,18 +20,13 @@ const (
 	OfflineMesType          = "OfflineMes" //离线留言
 	OfflineResMesType       = "OfflineResMes"
 	ErrorResType            = "ErrorRes" //服务端告诉离线留言信息的发送者，对象不存在 或者 已存储信息（不一定是错误）
+	HeartBeatType           = "HeartBeat"
 )
 
 //定义几个用户状态的常量
 const (
 	UserOnline = iota
 	UserOffline
-)
-
-//定义两个退出情况
-const (
-	Abnormal = "非正常退出"
-	Normal   = "正常退出"
 )
 
 type Message struct {
@@ -93,16 +88,16 @@ type PrivateResMes struct {
 type LogoutMes struct {
 	UserID   int    `json:"userID"`
 	UserName string `json:"userName"`
-	Reason   string `json:"reason"`
-	Time     int64  `json:"time"`
+	//Reason   string `json:"reason"`
+	Time int64 `json:"time"`
 }
 
 // LogoutResMes 下线：服务端传给在线用户的消息
 type LogoutResMes struct {
 	UserID   int    `json:"userID"`
 	UserName string `json:"userName"`
-	Reason   string `json:"reason"`
-	Time     int64  `json:"time"`
+	//Reason   string `json:"reason"`
+	Time int64 `json:"time"`
 }
 
 // OnlineMes 上线：客户端传给服务端的信息
