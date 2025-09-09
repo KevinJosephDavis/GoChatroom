@@ -18,7 +18,7 @@ func outputGroupMes(mes *message.Message) {
 		return
 	}
 
-	info := fmt.Sprintf("%s (ID:%d)\t 对大家说：\t%s", groupMes.Sender.UserName, groupMes.Sender.UserID, groupMes.Content)
+	info := fmt.Sprintf("%s (ID:%d) 对大家说：%s", groupMes.Sender.UserName, groupMes.Sender.UserID, groupMes.Content)
 	fmt.Println(info)
 	fmt.Println()
 }
@@ -31,7 +31,7 @@ func outputPrivateMes(mes *message.Message) {
 		fmt.Println("outputPrivateMes json.Unmarshal err=", err)
 		return
 	}
-	info := fmt.Sprintf("%s (ID:%d)\t 对你说：\t%s", privateMsg.Sender.UserName, privateMsg.Sender.UserID, privateMsg.Content)
+	info := fmt.Sprintf("%s (ID:%d) 对你说：%s", privateMsg.Sender.UserName, privateMsg.Sender.UserID, privateMsg.Content)
 	fmt.Println(info)
 	fmt.Println()
 }
@@ -73,9 +73,9 @@ func outputDeleteAccountMes(mes *message.Message) {
 		//先发送退出信号，让主循环先退出
 		select {
 		case DeleteAccountChan <- true:
-			fmt.Println("已发送注销退出信号")
+			//fmt.Println("已发送注销退出信号")
 		default:
-			fmt.Println("注销通道已满，尝试其它方式")
+			//fmt.Println("注销通道已满，尝试其它方式")
 			select {
 			case exitChan <- true:
 			default:
@@ -93,7 +93,7 @@ func outputDeleteAccountMes(mes *message.Message) {
 			//由于是本用户注销，因此要清理其客户端状态
 			onlineUsers = make(map[int]*message.User)
 			model.ClearCurUser()
-			fmt.Println("资源清理完成")
+			//fmt.Println("资源清理完成")
 		}()
 	} else {
 		//这是其他用户注销的通知
@@ -152,7 +152,7 @@ func outputOfflineResMes(mes *message.Message) {
 		return
 	}
 	mesTime := time.Unix(offlineResMes.Time, 0)
-	info := fmt.Sprintf("用户%s (ID:%d) 于%s给您的离线留言：%s", offlineResMes.SenderName, offlineResMes.SenderID,
+	info := fmt.Sprintf("用户%s (ID:%d) 于 %s 给您的离线留言：%s", offlineResMes.SenderName, offlineResMes.SenderID,
 		mesTime.Format("2006-01-02 15:04:05"), offlineResMes.Content)
 	fmt.Println(info)
 	fmt.Println()

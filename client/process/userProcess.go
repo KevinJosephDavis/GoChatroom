@@ -69,7 +69,7 @@ func (uspc *UserProcess) Login(userID int, userPassword string) (err error) {
 	//现在发送消息长度
 	n, err := conn.Write(buf[:4])
 	if n != 4 || err != nil {
-		fmt.Println("conn.Write(bytes) err=", err)
+		//fmt.Println("conn.Write(bytes) err=", err)
 		return
 	}
 
@@ -78,7 +78,7 @@ func (uspc *UserProcess) Login(userID int, userPassword string) (err error) {
 	//发送消息本身
 	_, err = conn.Write(data)
 	if err != nil {
-		fmt.Println("conn.Write(data) err=", err)
+		//fmt.Println("conn.Write(data) err=", err)
 		return
 	}
 
@@ -132,17 +132,17 @@ func (uspc *UserProcess) Login(userID int, userPassword string) (err error) {
 		for {
 			curUser := model.GetCurUser()
 			if curUser == nil || curUser.Conn == nil {
-				fmt.Println("连接已关闭，返回主菜单")
+				//fmt.Println("连接已关闭，返回主菜单")
 				return
 			}
 			select {
 			case <-DeleteAccountChan:
 				//收到注销完成信号
-				fmt.Println("注销完成，返回主菜单")
+				//fmt.Println("注销完成，返回主菜单")
 				return
 			case <-exitChan:
 				//收到普通退出信号
-				fmt.Println("收到退出信号，返回主菜单")
+				//fmt.Println("收到退出信号，返回主菜单")
 				if cancelFunc != nil {
 					cancelFunc()
 				}
@@ -154,7 +154,7 @@ func (uspc *UserProcess) Login(userID int, userPassword string) (err error) {
 				//显示菜单并处理用户输入
 				if shouldExit := ShowMenu(); shouldExit {
 					//用户选择退出系统（选项5）
-					fmt.Println("用户选择退出系统，清理资源...")
+					//fmt.Println("用户选择退出系统，清理资源...")
 					if cancelFunc != nil {
 						cancelFunc()
 					}

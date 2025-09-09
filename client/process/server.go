@@ -21,10 +21,9 @@ func ShowMenu() bool {
 	fmt.Println("\t1.显示在线用户列表")
 	fmt.Println("\t2.开启广播")
 	fmt.Println("\t3.私聊")
-	fmt.Println("\t4.信息列表")
-	fmt.Println("\t5.退出系统")
-	fmt.Println("\t6.注销账号")
-	fmt.Println("\t请选择1-6")
+	fmt.Println("\t4.退出系统")
+	fmt.Println("\t5.注销账号")
+	fmt.Println("\t请选择1-5")
 	var choice int
 	var content string
 
@@ -56,9 +55,6 @@ func ShowMenu() bool {
 		}
 		smsp.SendPrivateMes(content, receiverID)
 	case 4:
-		fmt.Println("查看信息列表") //离线留言使用
-
-	case 5:
 		fmt.Println("您选择退出系统")
 		smsp.SendLogoutMes(model.GetCurUser().UserID, model.GetCurUser().UserName, time.Now().Unix())
 		time.Sleep(100 * time.Millisecond) //确保消息发送过去
@@ -66,7 +62,7 @@ func ShowMenu() bool {
 		//退回到上一级菜单
 		return true
 
-	case 6:
+	case 5:
 		fmt.Println("您选择注销用户")
 		fmt.Println("您确认要注销用户吗?(y/n)：")
 		var confirm string
@@ -103,7 +99,7 @@ func serverProcessMes(ctx context.Context, conn net.Conn) {
 		select {
 		case <-ctx.Done(): //当cancel()被调用时，这里会收到信号
 			//收到取消信号，退出
-			fmt.Println("收到context取消信号，协程退出")
+			//fmt.Println("收到context取消信号，协程退出")
 			return
 		default:
 			//设置读取超时，避免永久堵塞

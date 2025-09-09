@@ -25,7 +25,7 @@ func outputOnlineUser() {
 		if user.UserID == model.GetCurUser().UserID {
 			continue
 		}
-		fmt.Printf("%s (ID:%d):", user.UserName, user.UserID)
+		fmt.Printf("%s (ID:%d) ", user.UserName, user.UserID)
 		fmt.Println()
 	}
 }

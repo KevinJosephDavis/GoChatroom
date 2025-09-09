@@ -32,7 +32,7 @@ func SetUpSignalHandler() {
 
 	go func() {
 		<-c
-		fmt.Println("\n接收到信号，正在退出...")
+		//fmt.Println("\n接收到信号，正在退出...")
 		curUser := model.GetCurUser()
 		if curUser != nil && curUser.Conn != nil && curUser.UserID != 0 {
 			smsp := &process.SmsProcess{}
@@ -54,11 +54,11 @@ func main() {
 	var choice int
 	SetUpSignalHandler()
 	for {
-		fmt.Println("\t\t欢迎使用多人聊天系统")
-		fmt.Println("\t\t1 登录聊天室")
-		fmt.Println("\t\t2 注册用户")
-		fmt.Println("\t\t3 退出系统")
-		fmt.Println("\t\t请选择（输入1-3）：")
+		fmt.Println("\t欢迎使用多人聊天系统")
+		fmt.Println("\t1 登录聊天室")
+		fmt.Println("\t2 注册用户")
+		fmt.Println("\t3 退出系统")
+		fmt.Println("\t请选择（输入1-3）：")
 
 		fmt.Scanf("%d\n", &choice)
 		switch choice {
