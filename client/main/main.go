@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"os/signal"
@@ -11,11 +12,16 @@ import (
 	"github.com/kevinjosephdavis/chatroom/client/process"
 )
 
-// 定义两个变量，一个表示用户id，一个表示用户密码
 var userID int
 var userPassword string
 var userName string
 var CurUser model.CurUser
+
+var serverAddress string
+
+func init() {
+	flag.StringVar(&serverAddress, "server", "localhost:8889", "服务器地址")
+}
 
 func GetCurUser() *model.CurUser {
 	return &CurUser
@@ -51,6 +57,7 @@ func SetUpSignalHandler() {
 	}()
 }
 func main() {
+	flag.Parse()
 	var choice int
 	SetUpSignalHandler()
 	for {
@@ -70,7 +77,7 @@ func main() {
 			fmt.Scanf("%s\n", &userPassword)
 
 			uspc := &process.UserProcess{}
-			uspc.Login(userID, userPassword)
+			uspc.Login(serverAddress, userID, userPassword)
 		case 2:
 			fmt.Println("注册用户")
 			fmt.Println("请输入用户id：")
@@ -81,7 +88,7 @@ func main() {
 			fmt.Scanf("%s\n", &userName)
 
 			uspc := &process.UserProcess{}
-			uspc.Register(userID, userPassword, userName)
+			uspc.Register(serverAddress, userID, userPassword, userName)
 		case 3:
 			fmt.Println("退出系统")
 			os.Exit(0)
