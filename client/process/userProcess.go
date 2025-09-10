@@ -21,7 +21,7 @@ type UserProcess struct {
 func (uspc *UserProcess) Login(serverAddr string, userID int, userPassword string) (err error) {
 
 	//1.连接到服务器
-	conn, err := net.Dial("tcp", serverAddr)
+	conn, err := net.Dial("tcp4", serverAddr)
 	if err != nil {
 		fmt.Println("net.Dial err=", err)
 		return
@@ -175,7 +175,7 @@ func (uspc *UserProcess) Login(serverAddr string, userID int, userPassword strin
 // Register 完成用户注册
 func (uspc *UserProcess) Register(serverAddr string, userID int, userPwd string, userName string) (err error) {
 	//1.连接到服务器
-	conn, err := net.Dial("tcp", serverAddr)
+	conn, err := net.Dial("tcp4", serverAddr)
 	if err != nil {
 		fmt.Println("net.Dial err=", err)
 		return

@@ -15,7 +15,7 @@ func initPool(address string, maxIdle int, maxActive int, idleTimeout time.Durat
 		MaxActive:   maxActive,
 		IdleTimeout: idleTimeout,
 		Dial: func() (redis.Conn, error) { //初始化连接
-			return redis.Dial("tcp", address)
+			return redis.Dial("tcp4", address)
 		},
 	}
 }

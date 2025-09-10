@@ -40,7 +40,7 @@ func init() {
 func main() {
 	//提示信息
 	fmt.Println("服务器在8889端口监听....")
-	listen, err := net.Listen("tcp", "0.0.0.0:8889")
+	listen, err := net.Listen("tcp4", "0.0.0.0:8889")
 
 	if err != nil {
 		fmt.Println("net.Listen err=", err)
